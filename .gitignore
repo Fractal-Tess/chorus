@@ -1,0 +1,15 @@
+.direnv/
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+models/
+outputs/
+
+# caches and environments
+.cache/
+.venv/
+__pycache__/
+.direnv/
+models/
