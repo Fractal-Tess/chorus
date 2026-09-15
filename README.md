@@ -81,11 +81,14 @@ Optional `model` and `device` fields select a model version and device, for exam
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Runtime and loaded-engine status |
+| `GET` | `/v1/devices` | Detected CPU/CUDA devices, enabled status, and default device policy |
 | `GET` | `/v1/engines` | Engines, voices, languages, and defaults |
 | `GET` | `/v1/models` | Model versions, supported/allowed devices, loaded instances |
 | `POST` | `/v1/audio/speech` | Generate a WAV response |
 | `GET` | `/v1/audio/alignments/{id}` | Retrieve a generated word-alignment sidecar |
 | `GET` | `/docs` | OpenAPI console |
+
+`GET /v1/devices` returns `default_device` and a `devices` list with `id`, `type`, and `enabled` fields. Detected GPUs can be disabled by `--devices`; only enabled devices may be selected in speech requests. Detection respects `CUDA_VISIBLE_DEVICES` and is cached for the server process. Check `/v1/models` for model compatibility. The `auto` default prefers an enabled GPU supported by the selected model, otherwise CPU.
 
 The speech endpoint accepts text up to 10,000 characters and a speed from `0.5` to `2.0`. Pocket TTS, Breeze, and Fish use a fixed speed of `1.0`. LavaSR and force alignment are disabled unless the request explicitly enables them.
 

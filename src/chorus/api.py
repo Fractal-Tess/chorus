@@ -14,11 +14,25 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from chorus.engines import ENGINE_INFO
+from chorus.devices import available_devices
 from chorus.models import ROOT
 from chorus.registry import EngineRegistry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chorus")
+
+
+class DeviceInfo(BaseModel):
+    id: str = Field(description="Device ID accepted by speech requests, e.g. cpu or cuda:0.")
+    type: str = Field(description="Execution device type: cpu or cuda.")
+    enabled: bool = Field(description="Whether server policy permits this device.")
+
+
+class DevicesResponse(BaseModel):
+    default_device: str = Field(
+        description="Configured default: auto prefers an enabled GPU supported by the model, otherwise CPU."
+    )
+    devices: list[DeviceInfo]
 
 
 class SpeechRequest(BaseModel):
@@ -94,6 +108,26 @@ def health() -> dict[str, object]:
         "torch": torch.__version__,
         "cuda_available": any(d.startswith("cuda:") for d in registry.policy.allowed),
         "loaded_engines": registry.loaded_engines(),
+    }
+
+
+@app.get("/v1/devices", response_model=DevicesResponse)
+def devices() -> dict[str, object]:
+    """List detected devices, including those disabled by server policy.
+
+    Detection respects CUDA_VISIBLE_DEVICES and is cached for this process.
+    Use /v1/models to check which enabled devices a model supports.
+    """
+    return {
+        "default_device": registry.policy.default,
+        "devices": [
+            {
+                "id": device,
+                "type": device.split(":")[0],
+                "enabled": device in registry.policy.allowed,
+            }
+            for device in available_devices()
+        ],
     }
 
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added `GET /v1/devices` with detected CPU/CUDA device IDs, enabled status, and the default device policy, including a response schema in the interactive API docs.
 - Consolidated shell launchers in `bin/`, standalone Python commands in `src/chorus/commands/`, and Tailwind configuration in `static/`; launcher names remain unchanged in the development shell.
 - Isolated the development flake and lock in `nix/`, with a direnv `path:` reference that keeps model weights out of Nix source snapshots.
 - Added local Fish Audio S2-Pro CUDA synthesis with pinned source, checksum-verified Git LFS weights, and a separate locked runtime.
