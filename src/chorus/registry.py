@@ -8,7 +8,7 @@ from dataclasses import dataclass, field, replace
 
 from chorus.devices import DevicePolicy
 from chorus.engines import ENGINE_INFO
-from chorus.model_worker import ModelWorker
+from chorus.model_worker import ModelWorker, worker_concurrency
 from chorus.models import ModelCatalog
 from chorus.resources import (
     gpu_usage,
@@ -25,7 +25,9 @@ LOGGER = logging.getLogger("chorus")
 @dataclass
 class CacheEntry:
     worker: ModelWorker
-    lock: threading.Lock = field(default_factory=threading.Lock)
+    lock: threading.Semaphore = field(
+        default_factory=lambda: threading.BoundedSemaphore(1)
+    )
     users: int = 0
     last_used: float = field(default_factory=time.monotonic)
 
@@ -221,6 +223,33 @@ class EngineRegistry:
         if self._reaper is not None:
             self._reaper.join()
 
+    def _select_device(self, spec, requested: str | None = None) -> str:
+        requested = requested or self.policy.default
+        if requested != "auto":
+            return self.policy.resolve(spec.devices, requested)
+
+        gpu_devices = [
+            device
+            for device in self.policy.allowed
+            if device.startswith("cuda:") and "cuda" in spec.devices
+        ]
+        if not gpu_devices:
+            return self.policy.resolve(spec.devices, "auto")
+
+        def rank(device: str) -> tuple[int, int]:
+            outstanding = sum(
+                entry.users
+                for key, entry in self._instances.items()
+                if key[2] == device
+            )
+            entry = self._instances.get((spec.engine, spec.name, device))
+            return (
+                outstanding,
+                0 if entry is not None and entry.worker.pid is not None else 1,
+            )
+
+        return min(gpu_devices, key=rank)
+
     def synthesize(
         self,
         engine: str,
@@ -240,8 +269,6 @@ class EngineRegistry:
         if engine not in self.enabled:
             raise ValueError(f"Engine {engine} is not enabled")
         spec = self.catalog.resolve(engine, model)
-        selected = self.policy.resolve(spec.devices, device)
-        key = (engine, spec.name, selected)
         effective_language = language or (
             voice[0]
             if engine == "kokoro" and voice
@@ -256,9 +283,16 @@ class EngineRegistry:
             if self._closed:
                 raise RuntimeError("Registry is closed")
             self._maintain()
+            selected = self._select_device(spec, device)
+            key = (engine, spec.name, selected)
             entry = self._instances.get(key)
             if entry is None:
-                entry = CacheEntry(ModelWorker(spec, selected))
+                entry = CacheEntry(
+                    ModelWorker(spec, selected),
+                    lock=threading.BoundedSemaphore(
+                        worker_concurrency(engine, selected)
+                    ),
+                )
                 self._instances[key] = entry
             entry.users += 1
             if self._reaper is None:

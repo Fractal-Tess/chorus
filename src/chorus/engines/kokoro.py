@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 
 import numpy as np
 import onnxruntime as ort
@@ -25,6 +26,7 @@ LANGUAGES = {
 class Adapter(Engine):
     def __init__(self, spec, device: str):
         super().__init__(spec, device)
+        self._prepare_lock = threading.Lock()
         self.vocab = json.loads(spec.artifact("config.json").read_text())["vocab"]
         options = ort.SessionOptions()
         # Avoid thread-pool spinning competing with phonemization and other engines.
@@ -56,10 +58,11 @@ class Adapter(Engine):
                 f"Kokoro CUDA provider failed to initialize on {device}; refusing CPU fallback"
             )
 
-    def synthesize(
+    def _prepare(
         self, text: str, voice: str | None, language: str | None, speed: float
-    ) -> AudioResult:
+    ) -> list[dict[str, np.ndarray]]:
         from kokoro import KPipeline
+
         from chorus.engines import ENGINE_INFO
 
         voice = voice or "af_heart"
@@ -82,7 +85,7 @@ class Adapter(Engine):
                 self.spec.artifact(f"voices/{voice}.bin"), dtype=np.float32
             ).reshape(-1, 1, 256),
         )
-        chunks = []
+        feeds = []
         for result in pipeline(text):
             tokens = [self.vocab[p] for p in result.phonemes if p in self.vocab]
             if not tokens:
@@ -92,9 +95,18 @@ class Adapter(Engine):
                 "style": voice_pack[min(len(tokens), voice_pack.shape[0] - 1)],
                 "speed": np.array([speed], dtype=np.float32),
             }
-            chunks.append(self.session.run(None, inputs)[0].reshape(-1))
-        if not chunks:
+            feeds.append(inputs)
+        if not feeds:
             raise ValueError("Text contains no pronounceable speech")
+        return feeds
+
+    def synthesize(
+        self, text: str, voice: str | None, language: str | None, speed: float
+    ) -> AudioResult:
+        # Language pipelines and lazy caches are shared; ORT runs use independent inputs.
+        with self._prepare_lock:
+            feeds = self._prepare(text, voice, language, speed)
+        chunks = [self.session.run(None, inputs)[0].reshape(-1) for inputs in feeds]
         return encode_wav(
             chunks[0] if len(chunks) == 1 else np.concatenate(chunks), 24_000
         )

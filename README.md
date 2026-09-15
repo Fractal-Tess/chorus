@@ -34,7 +34,7 @@ Kokoro weights and all 54 voice tensors live in `models/kokoro/82m-v1.0/`, track
 
 For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selected engines' weights, then use the scoped `git lfs pull` commands. LFS keeps every committed weight version; remote storage and download quotas still apply.
 
-`--devices` restricts execution to listed devices. `--default-device auto` prefers an enabled GPU when the selected model supports it, otherwise CPU. Explicit unavailable or unsupported devices are errors; Kokoro refuses whole-session CPU fallback. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` loads and warms the model before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
+`--devices` restricts execution to listed devices. `--default-device auto` selects the compatible enabled GPU with the fewest active and queued requests, preferring an already-warm model on ties. Without a compatible GPU it selects CPU, if enabled. Explicit unavailable or unsupported devices are errors; Kokoro refuses whole-session CPU fallback. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` loads and warms the model before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
 
 CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The environment includes CUDA 12 and cuDNN runtime libraries; an NVIDIA driver is still required. On NixOS, the launcher includes `/run/opengl-driver/lib`. PyTorch and the optional processors remain CPU-based.
 
@@ -148,13 +148,22 @@ tailwindcss \
 
 Standalone Python commands live in `src/chorus/commands/`, their shell launchers in `bin/`, and browser assets and Tailwind configuration in `static/`. Generated audio and smoke reports belong in the ignored `outputs/` directory.
 
-Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device, serializing requests to each worker while allowing different workers to run concurrently. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
+Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device. Kokoro CUDA workers overlap up to two requests in one ONNX session without duplicating model weights; CPU and other engine workers serialize requests. Additional requests wait for a slot. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 
 ### Kokoro GPU measurement
 
 On an RTX 3090 with ONNX Runtime 1.26, five warm inference runs gave median latencies of 94 ms for 3.125 seconds of speech and 295 ms for 10.725 seconds. CPU medians on the Ryzen 7 2700 (four ONNX threads) were 1,513 ms and 5,214 ms. These exclude model loading, text processing, WAV encoding, and optional processing. An HTTP smoke request including text processing and WAV encoding took 101 ms warm.
 
 CUDA profiling recorded 1,895 GPU nodes and 182 CPU nodes. Some operations, including STFT and indexing, still use CPU. Heuristic convolution selection performed as well as exhaustive selection without extra tuning work. The upstream FP16 candidate produced non-finite audio and was not selected.
+
+Across two RTX 3090s, overlapping requests and automatic GPU routing increased warm MP3 throughput from 6.7 to 9.9 requests per second. The measurement used Kokoro `af_bella`, a 9.875-second English passage, and no optional processing on the Ryzen 7 2700:
+
+| Concurrent requests | Before, requests/s | Now, requests/s | Now, median HTTP latency |
+| --- | ---: | ---: | ---: |
+| 4 | 6.64 | 9.15 | 422 ms |
+| 8 | 6.70 | 9.82 | 797 ms |
+
+The new 15-second trials completed 677 requests across six load settings with no errors. Twelve concurrent requests reached 9.91 requests/s but raised median latency to 1.18 seconds. Use four concurrent requests for lower latency or eight for throughput, with `device: "auto"`. The FP32 graph and weights are unchanged. CPU STFT remains a bottleneck; the gain comes from overlapping independent requests, not making a single request 48% faster.
 
 ### Breeze setup
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Increased Kokoro CUDA throughput by overlapping two requests in each shared ONNX session and using private, framed binary worker connections. Dual-RTX-3090 warm MP3 throughput increased from 6.7 to 9.9 requests/s without duplicating model weights; CPU and other engine workers remain serialized.
+- Changed automatic device selection to balance active and queued requests across compatible enabled GPUs, preferring warm models on ties. Explicit device requests remain pinned.
 - Added `response_format` to speech requests for WAV (default), MP3, lossless FLAC, and Ogg Opus, with FFmpeg encoding, matching media types/download extensions, OpenAPI documentation, and encoding timing.
 - Added lazy isolated model workers with warm reuse, a configurable five-minute idle timeout, and least-recently-used eviction against optional aggregate RAM and per-GPU VRAM cache budgets.
 - Added `GET /v1/resources` and memory-budget CLI flags. Worker eviction releases optional processors and nested runtimes; device discovery no longer retains CUDA contexts in the API process.
