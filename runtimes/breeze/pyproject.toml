@@ -1,5 +1,5 @@
 [project]
-name = "mini-tts-breeze-runtime"
+name = "chorus-breeze-runtime"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -23,6 +23,6 @@ explicit = true
 torch = { index = "pytorch-cu128" }
 torchaudio = { index = "pytorch-cu128" }
 
-[tool.mini-tts.breeze]
+[tool.chorus.breeze]
 upstream_repository = "https://github.com/breezeblue-ai/breeze-tts.git"
 upstream_revision = "008f769016b0a24711becd7a4925030bc93f608c"

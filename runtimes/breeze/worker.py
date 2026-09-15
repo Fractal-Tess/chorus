@@ -60,7 +60,7 @@ from models.fast_streaming import (  # noqa: E402
     FastStreamingConfig,
 )
 
-LOGGER = logging.getLogger("mini-tts.breeze-worker")
+LOGGER = logging.getLogger("chorus.breeze-worker")
 _ALLOWED_LANGUAGES = {
     "en",
     "en-us",

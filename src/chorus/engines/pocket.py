@@ -1,5 +1,5 @@
-from mini_tts.engines.base import Engine
-from mini_tts.types import AudioResult, encode_wav
+from chorus.engines.base import Engine
+from chorus.types import AudioResult, encode_wav
 
 _POCKET_LANGUAGES = {
     "en": "english",

@@ -1,6 +1,6 @@
 """Breeze TTS 2 adapter backed by an isolated CUDA worker.
 
-Breeze requires CUDA PyTorch and NumPy 2, unlike mini-tts' CPU environment.
+Breeze requires CUDA PyTorch and NumPy 2, unlike Chorus's API environment.
 The worker is started on the first request and kept alive for subsequent
 requests. The ``voice`` argument is a natural-language voice description for
 Breeze voice design/direction, not a named voice or a filesystem path.
@@ -23,11 +23,11 @@ from typing import Any
 
 import soundfile as sf
 
-from mini_tts.engines.base import Engine
-from mini_tts.models import ROOT
-from mini_tts.types import AudioResult
+from chorus.engines.base import Engine
+from chorus.models import ROOT
+from chorus.types import AudioResult
 
-LOGGER = logging.getLogger("mini-tts.breeze")
+LOGGER = logging.getLogger("chorus.breeze")
 _RUNTIME_DIR = ROOT / "runtimes" / "breeze"
 _WORKER = _RUNTIME_DIR / "worker.py"
 _PYTHON = _RUNTIME_DIR / ".venv" / "bin" / "python"

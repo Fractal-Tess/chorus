@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from mini_tts.models import ModelCatalog
+from chorus.models import ModelCatalog
 
 
 def main() -> None:
@@ -31,7 +31,7 @@ def main() -> None:
         except (ValueError, RuntimeError) as error:
             parser.error(str(error))
         return
-    from mini_tts.devices import DevicePolicy, available_devices
+    from chorus.devices import DevicePolicy, available_devices
 
     if args.list_devices:
         print(
@@ -47,7 +47,7 @@ def main() -> None:
             )
         )
         return
-    from mini_tts.registry import EngineRegistry
+    from chorus.registry import EngineRegistry
 
     registry = None
     try:
@@ -61,7 +61,7 @@ def main() -> None:
         for selector in args.preload:
             registry.preload(selector)
         import uvicorn
-        from mini_tts import api
+        from chorus import api
 
         api.registry = registry
         uvicorn.run(api.app, host=args.host, port=args.port)

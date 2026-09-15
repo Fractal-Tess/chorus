@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Mini TTS Studio</title>
+  <title>Chorus Studio</title>
   <link rel="stylesheet" href="/static/tailwind.css">
   <style>
     :root { --wave-idle: #cbd5e1; --wave-active: #f97316; }
@@ -23,7 +23,7 @@
   </style>
   <script>
     (() => {
-      const saved = localStorage.getItem('mini-tts-theme') || 'system';
+      const saved = localStorage.getItem('chorus-theme') || 'system';
       const dark = saved === 'dark' || (saved === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.classList.toggle('dark', dark);
       document.documentElement.dataset.theme = saved;
@@ -33,12 +33,12 @@
 <body class="min-h-full bg-slate-50 text-slate-950 transition-colors duration-300 dark:bg-[#090d14] dark:text-slate-100">
   <div class="mx-auto flex min-h-screen max-w-[1480px] flex-col px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
     <header class="flex items-center justify-between gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800">
-      <a href="/" class="group flex items-center gap-3" aria-label="Mini TTS home">
+      <a href="/" class="group flex items-center gap-3" aria-label="Chorus home">
         <span class="grid size-10 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-900/15 transition-transform group-hover:-rotate-3 dark:bg-white dark:text-slate-950">
           <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12h2m2-5v10m4-13v16m4-12v8m4-6v4" stroke-linecap="round"/></svg>
         </span>
         <div>
-          <p class="text-sm font-black tracking-[-0.02em]">MINI TTS</p>
+          <p class="text-sm font-black tracking-[-0.02em]">CHORUS</p>
           <p class="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Local voice studio</p>
         </div>
       </a>

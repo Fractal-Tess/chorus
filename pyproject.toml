@@ -1,5 +1,5 @@
 [project]
-name = "mini-tts"
+name = "chorus"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -38,7 +38,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mini_tts"]
+packages = ["src/chorus"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

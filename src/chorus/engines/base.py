@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from mini_tts.models import ModelSpec
-from mini_tts.types import AudioResult
+from chorus.models import ModelSpec
+from chorus.types import AudioResult
 
 
 class Engine:

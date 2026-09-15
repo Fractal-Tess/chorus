@@ -3,8 +3,8 @@ import wave
 
 import soundfile as sf
 
-from mini_tts.engines.base import Engine
-from mini_tts.types import AudioResult
+from chorus.engines.base import Engine
+from chorus.types import AudioResult
 
 
 class Adapter(Engine):

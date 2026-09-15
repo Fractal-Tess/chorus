@@ -1,4 +1,4 @@
-<h1 align="center">Mini TTS</h1>
+<h1 align="center">Chorus</h1>
 
 <p align="center"><strong>Local text-to-speech engines behind one CPU/CUDA API and browser console.</strong></p>
 
@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/environment-Nix%20flake-5277C3?logo=nixos&logoColor=white" alt="Nix flake">
 </p>
 
-Mini TTS runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, and Breeze TTS 2 on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
+Chorus runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, and Breeze TTS 2 on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
 
 - No hosted speech API required. Kokoro supports CPU/CUDA; Breeze requires CUDA.
 - Models load on demand and stay warm for later requests.
@@ -96,7 +96,7 @@ Dependencies are locked in `uv.lock` and synchronized when the development shell
 
 ```bash
 nix develop
-python -m compileall -q src/mini_tts
+python -m compileall -q src/chorus
 ```
 
 Rebuild the local Tailwind stylesheet after changing classes:
@@ -109,7 +109,7 @@ tailwindcss \
   --minify
 ```
 
-Engine code lives in `src/mini_tts/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches separate instances per engine, model, and device, with a lock per instance. Optional processing is separate in `processing.py`. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
+Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches separate instances per engine, model, and device, with a lock per instance. Optional processing is separate in `processing.py`. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 
 ### Kokoro GPU measurement
 

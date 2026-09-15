@@ -173,6 +173,45 @@ wheels = [
 ]
 
 [[package]]
+name = "chorus"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "en-core-web-sm" },
+    { name = "fastapi" },
+    { name = "huggingface-hub" },
+    { name = "kittentts" },
+    { name = "kokoro" },
+    { name = "lavasr" },
+    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"] },
+    { name = "piper-tts" },
+    { name = "pocket-tts" },
+    { name = "soundfile" },
+    { name = "supertonic" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "en-core-web-sm", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "huggingface-hub", specifier = ">=1.0" },
+    { name = "kittentts", url = "https://github.com/KittenML/KittenTTS/releases/download/0.8.1/kittentts-0.8.1-py3-none-any.whl" },
+    { name = "kokoro", specifier = "==0.9.4" },
+    { name = "lavasr", git = "https://github.com/ysharma3501/LavaSR.git?rev=33ac040892519c1bb4aed7eb32e79af51cc29e2a" },
+    { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], specifier = ">=1.21,<1.27" },
+    { name = "piper-tts", specifier = "==1.7.0" },
+    { name = "pocket-tts", specifier = "==3.0.2" },
+    { name = "soundfile", specifier = ">=0.12.0" },
+    { name = "supertonic", specifier = "==1.3.1" },
+    { name = "torch", specifier = "==2.9.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torchaudio", specifier = "==2.9.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "uvicorn", specifier = ">=0.34" },
+]
+
+[[package]]
 name = "click"
 version = "8.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -687,45 +726,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
-]
-
-[[package]]
-name = "mini-tts"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "en-core-web-sm" },
-    { name = "fastapi" },
-    { name = "huggingface-hub" },
-    { name = "kittentts" },
-    { name = "kokoro" },
-    { name = "lavasr" },
-    { name = "onnxruntime-gpu", extra = ["cuda", "cudnn"] },
-    { name = "piper-tts" },
-    { name = "pocket-tts" },
-    { name = "soundfile" },
-    { name = "supertonic" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "uvicorn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "en-core-web-sm", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" },
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "huggingface-hub", specifier = ">=1.0" },
-    { name = "kittentts", url = "https://github.com/KittenML/KittenTTS/releases/download/0.8.1/kittentts-0.8.1-py3-none-any.whl" },
-    { name = "kokoro", specifier = "==0.9.4" },
-    { name = "lavasr", git = "https://github.com/ysharma3501/LavaSR.git?rev=33ac040892519c1bb4aed7eb32e79af51cc29e2a" },
-    { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], specifier = ">=1.21,<1.27" },
-    { name = "piper-tts", specifier = "==1.7.0" },
-    { name = "pocket-tts", specifier = "==3.0.2" },
-    { name = "soundfile", specifier = ">=0.12.0" },
-    { name = "supertonic", specifier = "==1.3.1" },
-    { name = "torch", specifier = "==2.9.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
-    { name = "torchaudio", specifier = "==2.9.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
-    { name = "uvicorn", specifier = ">=0.34" },
 ]
 
 [[package]]

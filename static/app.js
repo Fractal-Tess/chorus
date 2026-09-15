@@ -71,7 +71,7 @@ function escapeHtml(value) {
 }
 
 function setTheme(mode) {
-  localStorage.setItem('mini-tts-theme', mode);
+  localStorage.setItem('chorus-theme', mode);
   document.documentElement.dataset.theme = mode;
   const dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.classList.toggle('dark', dark);

@@ -13,12 +13,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from mini_tts.engines import ENGINE_INFO
-from mini_tts.models import ROOT
-from mini_tts.registry import EngineRegistry
+from chorus.engines import ENGINE_INFO
+from chorus.models import ROOT
+from chorus.registry import EngineRegistry
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("mini-tts")
+logger = logging.getLogger("chorus")
 
 
 class SpeechRequest(BaseModel):
@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Mini TTS API",
+    title="Chorus API",
     version="1.0.0",
     description="Local multi-engine TTS with CPU/CUDA synthesis and optional post-processing.",
     lifespan=lifespan,

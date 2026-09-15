@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 
-from mini_tts.registry import EngineRegistry
+from chorus.registry import EngineRegistry
 
 
 def parse_args() -> argparse.Namespace:

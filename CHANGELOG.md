@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Renamed Mini TTS to Chorus, including the Python package, API/browser branding, and isolated Breeze runtime metadata.
 - Added Breeze TTS 2 CUDA voice design through an isolated, persistent worker with pinned inference source and a separate locked environment.
 - Stored Breeze model shards, audio tokenizer, provenance checksums, and non-commercial license under `models/breeze/tts-2`; large artifacts use Git LFS.
 - Added browser voice-description input and shared LavaSR/English alignment support for Breeze output, plus worker shutdown cleanup.

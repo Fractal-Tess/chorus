@@ -5,8 +5,8 @@ import json
 import numpy as np
 import onnxruntime as ort
 
-from mini_tts.engines.base import Engine
-from mini_tts.types import AudioResult, encode_wav
+from chorus.engines.base import Engine
+from chorus.types import AudioResult, encode_wav
 
 LANGUAGES = {
     "en": "a",
@@ -60,7 +60,7 @@ class Adapter(Engine):
         self, text: str, voice: str | None, language: str | None, speed: float
     ) -> AudioResult:
         from kokoro import KPipeline
-        from mini_tts.engines import ENGINE_INFO
+        from chorus.engines import ENGINE_INFO
 
         voice = voice or "af_heart"
         if voice not in ENGINE_INFO["kokoro"]["voices"]:

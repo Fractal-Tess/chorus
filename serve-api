@@ -3,4 +3,4 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$SCRIPT_DIR"
 export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-exec "$SCRIPT_DIR/.venv/bin/python" -m mini_tts.cli "$@"
+exec "$SCRIPT_DIR/.venv/bin/python" -m chorus.cli "$@"

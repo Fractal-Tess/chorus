@@ -5,11 +5,11 @@ import threading
 import time
 from dataclasses import replace
 
-from mini_tts.devices import DevicePolicy
-from mini_tts.engines import ENGINE_INFO
-from mini_tts.models import ModelCatalog
-from mini_tts.processing import Processor
-from mini_tts.types import AudioResult
+from chorus.devices import DevicePolicy
+from chorus.engines import ENGINE_INFO
+from chorus.models import ModelCatalog
+from chorus.processing import Processor
+from chorus.types import AudioResult
 
 ENGLISH = {"a", "b", "en", "en-us", "en-gb", "english"}
 
@@ -54,7 +54,7 @@ class EngineRegistry:
         with self._lock:
             instance = self._instances.get(key)
         if instance is None:
-            module = importlib.import_module(f"mini_tts.engines.{spec.engine}")
+            module = importlib.import_module(f"chorus.engines.{spec.engine}")
             instance = module.Adapter(spec, device)
         return instance
 
