@@ -4,6 +4,7 @@ import logging
 import threading
 import uuid
 from collections import OrderedDict
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 
 import torch
@@ -37,7 +38,7 @@ class SpeechRequest(BaseModel):
     )
 
 
-registry = EngineRegistry()
+registry: EngineRegistry | None = None
 alignment_cache: OrderedDict[str, dict[str, object]] = OrderedDict()
 alignment_cache_lock = threading.Lock()
 ALIGNMENT_CACHE_LIMIT = 32
@@ -53,10 +54,22 @@ def store_alignment(payload: dict[str, object]) -> None:
             alignment_cache.popitem(last=False)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global registry
+    if registry is None:
+        registry = EngineRegistry()
+    try:
+        yield
+    finally:
+        registry.close()
+
+
 app = FastAPI(
     title="Mini TTS API",
     version="1.0.0",
     description="Local multi-engine TTS with CPU/CUDA synthesis and optional post-processing.",
+    lifespan=lifespan,
 )
 
 static_dir = ROOT / "static"

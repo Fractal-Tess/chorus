@@ -1,0 +1,28 @@
+[project]
+name = "mini-tts-breeze-runtime"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "torch==2.9.1",
+  "torchaudio==2.9.1",
+  "qwen-tts==0.1.1",
+  "transformers==4.57.3",
+  "numpy>=2.0,<3",
+  "soundfile>=0.13,<1",
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+
+[tool.mini-tts.breeze]
+upstream_repository = "https://github.com/breezeblue-ai/breeze-tts.git"
+upstream_revision = "008f769016b0a24711becd7a4925030bc93f608c"

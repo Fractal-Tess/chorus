@@ -37,7 +37,7 @@ def available_devices() -> dict[str, str]:
 
 class DevicePolicy:
     def __init__(self, allowed: list[str] | None = None, default: str = "auto"):
-        available = available_devices()
+        available = {"cpu": "CPU"} if allowed == ["cpu"] else available_devices()
         self.allowed = list(
             dict.fromkeys(allowed if allowed is not None else available)
         )

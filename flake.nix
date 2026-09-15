@@ -13,6 +13,7 @@
           espeak-ng
           ffmpeg
           git-lfs
+          sox
           libsndfile
           python312
           tailwindcss

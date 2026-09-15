@@ -1,0 +1,3 @@
+[submodule "runtimes/breeze/upstream"]
+	path = runtimes/breeze/upstream
+	url = https://github.com/breezeblue-ai/breeze-tts.git

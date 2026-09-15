@@ -168,4 +168,14 @@ ENGINE_INFO = {
         ],
         "voices": ["M1", "M2", "M3", "M4", "M5", "F1", "F2", "F3", "F4", "F5"],
     },
+    "breeze": {
+        "label": "Breeze TTS 2",
+        "summary": "English and Chinese voice design. Research/non-commercial use only.",
+        "default_voice": None,
+        "default_language": "en",
+        "sample_rate": 24000,
+        "languages": ["en", "zh"],
+        "voices": [],
+        "voice_input": "description",
+    },
 }

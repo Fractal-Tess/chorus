@@ -8,15 +8,15 @@
   <img src="https://img.shields.io/badge/environment-Nix%20flake-5277C3?logo=nixos&logoColor=white" alt="Nix flake">
 </p>
 
-Mini TTS runs Pocket TTS, Kokoro, Piper, Kitten TTS, and Supertonic 3 on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
+Mini TTS runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, and Breeze TTS 2 on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
 
-- No hosted speech API or GPU required.
+- No hosted speech API required. Kokoro supports CPU/CUDA; Breeze requires CUDA.
 - Models load on demand and stay warm for later requests.
 - Narration picks are grouped in the console, with optional LavaSR enhancement to 48 kHz.
 
 ## Run it
 
-The included Nix flake provides Python 3.12, `uv`, FFmpeg, eSpeak NG, libsndfile, and Tailwind CSS.
+The included Nix flake provides Python 3.12, `uv`, Git LFS, FFmpeg, SoX, eSpeak NG, libsndfile, and Tailwind CSS.
 
 ```bash
 direnv allow
@@ -29,6 +29,8 @@ serve-api --devices cpu,cuda:0
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api`.
 
 Kokoro weights and all 54 voice tensors live in `models/kokoro/82m-v1.0/`, tracked with Git LFS. Missing files can also be fetched from checksum-verified, pinned upstream revisions with `serve-api --fetch-model kokoro/82m-v1.0`. Inference never downloads Kokoro weights or voice tensors. Language-processing resources and the other engines' upstream libraries retain their existing download behavior.
+
+For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selected engines' weights, then use the scoped `git lfs pull` commands. LFS keeps every committed weight version; remote storage and download quotas still apply.
 
 `--devices` restricts execution to listed devices. `--default-device auto` prefers an enabled GPU when the selected model supports it, otherwise CPU. Explicit unavailable or unsupported devices are errors; Kokoro refuses whole-session CPU fallback. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` loads and warms the model before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
 
@@ -43,6 +45,7 @@ CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The envir
 | Piper | `en_US-lessac-medium` | 22.05 kHz | Small, dependable English model |
 | Kitten TTS | `Leo` | 24 kHz | Eight lightweight English voices |
 | Supertonic 3 | `M1` | 44.1 kHz | Ten voices and multilingual synthesis |
+| Breeze TTS 2 | Voice description | 24 kHz | English/Chinese; CUDA; research/non-commercial license |
 
 For English narration, start with Kokoro `af_heart`. The console also marks expressive, audiobook, documentary, and British narration alternatives.
 
@@ -113,3 +116,23 @@ Engine code lives in `src/mini_tts/engines/`; versioned artifacts and manifests 
 On an RTX 3090 with ONNX Runtime 1.26, five warm inference runs gave median latencies of 94 ms for 3.125 seconds of speech and 295 ms for 10.725 seconds. CPU medians on the Ryzen 7 2700 (four ONNX threads) were 1,513 ms and 5,214 ms. These exclude model loading, text processing, WAV encoding, and optional processing. An HTTP smoke request including text processing and WAV encoding took 101 ms warm.
 
 CUDA profiling recorded 1,895 GPU nodes and 182 CPU nodes. Some operations, including STFT and indexing, still use CPU. Heuristic convolution selection performed as well as exhaustive selection without extra tuning work. The upstream FP16 candidate produced non-finite audio and was not selected.
+
+### Breeze setup
+
+[Breeze TTS 2](https://github.com/breezeblue-ai/breeze-tts) uses a separate environment under `runtimes/breeze/`: CUDA PyTorch 2.9.1, NumPy 2, Transformers, and the Qwen audio codec. Its inference source is a pinned Git submodule. The shared API keeps one worker alive per selected model/device and closes workers at shutdown.
+
+```bash
+git submodule update --init runtimes/breeze/upstream
+uv sync --project runtimes/breeze --locked --python "$UV_PYTHON"
+git lfs pull --include="models/breeze/**"
+# Alternatively: serve-api --fetch-model breeze/tts-2
+serve-api --engines kokoro,breeze --devices cpu,cuda:0
+```
+
+Call `/v1/audio/speech` with `"engine": "breeze", "model": "tts-2", "device": "cuda:0"`. For this engine, `voice` is an optional natural-language description, such as `"A calm, warm English narrator with clear diction."`; the browser exposes a text field instead of a voice list. Select `language` as `en` or `zh`. Language is inferred from the text, not translated. Speed must remain `1.0`. The existing `lava_sr` and English `force_align` options work on Breeze output.
+
+Breeze loads its local checkpoint and audio tokenizer with Hugging Face offline mode enabled. The model bundle is about 7.7 GB. On the RTX 3090, the eager worker used about 8.2 GiB of GPU memory; one warm request generated 2.64 seconds of audio in 9.4 seconds. Cold startup plus that request took 55 seconds. Flash-attention and fast CUDA-graph paths are not enabled. The upstream runtime's context and generation limits still apply; use short passages rather than book-length requests.
+
+The [Breeze model license](https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE) restricts the weights and self-hosted outputs to research/non-commercial use. The Apache-2.0 inference code does not grant commercial rights to the model. The license is retained beside the LFS artifacts. Commercial use requires separate permission.
+
+Large engines can use adapter packages rather than a single file and can own isolated workers like Breeze. Model manifests support multiple shards, tokenizers, and codecs. Adding Index TTS or Fish TTS does not require their dependencies to share the API environment. Reference-audio upload and cloning controls are not part of the current API.

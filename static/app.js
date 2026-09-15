@@ -12,6 +12,9 @@ const elements = {
   text: document.querySelector('#speech-text'),
   charCount: document.querySelector('#char-count'),
   voice: document.querySelector('#voice-select'),
+  voiceDescription: document.querySelector('#voice-description'),
+  voiceLabel: document.querySelector('#voice-label'),
+  voiceChevron: document.querySelector('#voice-chevron'),
   narrationBadge: document.querySelector('#narration-badge'),
   language: document.querySelector('#language-select'),
   speed: document.querySelector('#speed-input'),
@@ -98,7 +101,7 @@ function renderEngineCards() {
           <span class="size-1.5 rounded-full ${engine.loaded ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}"></span>
         </span>
         <span class="block text-sm font-black tracking-[-0.02em]">${escapeHtml(engine.label)}</span>
-        <span class="mt-1 block text-[10px] ${active ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}">${engine.voices.length} ${engine.voices.length === 1 ? 'voice' : 'voices'}</span>
+        <span class="mt-1 block text-[10px] ${active ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}">${engine.voice_input === 'description' ? 'Voice design' : `${engine.voices.length} ${engine.voices.length === 1 ? 'voice' : 'voices'}`}</span>
       </button>`;
   }).join('');
 
@@ -145,25 +148,30 @@ function selectEngine(id) {
   state.engine = state.engines.find((engine) => engine.id === id);
   if (!state.engine) return;
 
+  const voiceDesign = state.engine.voice_input === 'description';
+  elements.voice.hidden = voiceDesign;
+  elements.voiceChevron.classList.toggle('hidden', voiceDesign);
+  elements.voiceDescription.hidden = !voiceDesign;
+  elements.voiceLabel.htmlFor = voiceDesign ? 'voice-description' : 'voice-select';
   fillVoiceSelect(state.engine);
   fillSelect(elements.language, state.engine.languages, state.engine.default_language, (value) => languageNames[value] || value);
   updateNarrationBadge();
   updateAlignmentAvailability();
   elements.engineName.textContent = state.engine.label;
   elements.engineSummary.textContent = state.engine.summary;
-  elements.voiceCount.textContent = state.engine.voices.length;
+  elements.voiceCount.textContent = voiceDesign ? 'Voice design' : state.engine.voices.length;
   elements.sampleRate.textContent = `${(state.engine.sample_rate / 1000).toFixed(state.engine.sample_rate % 1000 ? 2 : 0)} kHz`;
   elements.loadedBadge.textContent = state.engine.loaded ? 'Warm' : 'Cold';
   elements.loadedBadge.className = state.engine.loaded
     ? 'rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
     : 'rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400';
 
-  const supportsSpeed = id !== 'pocket';
+  const supportsSpeed = !['pocket', 'breeze'].includes(id);
   elements.speed.disabled = !supportsSpeed;
   if (!supportsSpeed) {
     elements.speed.value = '1';
     elements.speedValue.textContent = '1.00×';
-    elements.formNote.textContent = 'Pocket TTS uses a fixed speaking speed.';
+    elements.formNote.textContent = `${state.engine.label} uses a fixed speaking speed.`;
   } else {
     elements.formNote.textContent = state.engine.loaded ? 'Model is warm and ready.' : 'First render loads the model; later renders are faster.';
   }
@@ -304,6 +312,9 @@ async function generateSpeech(event) {
   }
   const useLavaSr = elements.lavaSr.checked;
   const useForceAlign = elements.forceAlign.checked;
+  const voice = state.engine.voice_input === 'description'
+    ? elements.voiceDescription.value.trim() || null
+    : elements.voice.value;
 
   elements.generateButton.disabled = true;
   elements.lavaSr.disabled = true;
@@ -322,7 +333,7 @@ async function generateSpeech(event) {
       body: JSON.stringify({
         engine: state.engine.id,
         input: text,
-        voice: elements.voice.value,
+        voice,
         language: elements.language.value,
         speed: Number(elements.speed.value),
         lava_sr: useLavaSr,
@@ -354,14 +365,14 @@ async function generateSpeech(event) {
     state.audioUrl = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
     elements.audio.src = state.audioUrl;
     elements.downloadLink.href = state.audioUrl;
-    elements.downloadLink.download = `${state.engine.id}-${elements.voice.value}${enhanced ? '-lavasr' : ''}${alignment ? '-aligned' : ''}.wav`;
+    elements.downloadLink.download = `${state.engine.id}${enhanced ? '-lavasr' : ''}${alignment ? '-aligned' : ''}.wav`;
 
     const audioContext = new AudioContext();
     state.audioBuffer = await audioContext.decodeAudioData(bytes.slice(0));
     state.waveform = buildWaveform(state.audioBuffer.getChannelData(0));
     await audioContext.close();
 
-    elements.resultTitle.textContent = `${state.engine.label} · ${elements.voice.value}`;
+    elements.resultTitle.textContent = `${state.engine.label}${voice ? ` · ${voice}` : ''}`;
     elements.resultEnhancement.classList.toggle('hidden', !enhanced);
     renderAlignment(alignment);
     const timingParts = [];

@@ -56,16 +56,22 @@ class EngineRegistry:
         if instance is None:
             module = importlib.import_module(f"mini_tts.engines.{spec.engine}")
             instance = module.Adapter(spec, device)
-            with self._lock:
-                self._instances[key] = instance
         return instance
 
     def preload(self, selector: str):
         engine, model = selector.split("/", 1)
-        spec, device, key, lock = self._resolve(engine, model, None)
-        with lock:
-            instance = self._load(spec, device, key)
-            instance.synthesize("Ready.", None, None, 1.0)
+        self.synthesize(engine, "Ready.", model=model)
+
+    def close(self) -> None:
+        with self._lock:
+            instances = list(self._instances.items())
+        for key, instance in instances:
+            with self._locks[key]:
+                close = getattr(instance, "close", None)
+                if close is not None:
+                    close()
+        with self._lock:
+            self._instances.clear()
 
     def synthesize(
         self,
@@ -97,7 +103,18 @@ class EngineRegistry:
         with lock:
             inference_started = time.perf_counter()
             instance = self._load(spec, selected, key)
-            audio = instance.synthesize(text, voice, language, speed)
+            try:
+                audio = instance.synthesize(text, voice, language, speed)
+            except Exception:
+                with self._lock:
+                    cached = key in self._instances
+                if not cached:
+                    close = getattr(instance, "close", None)
+                    if close is not None:
+                        close()
+                raise
+            with self._lock:
+                self._instances[key] = instance
             inference_ms = (time.perf_counter() - inference_started) * 1000
         audio = replace(
             audio,

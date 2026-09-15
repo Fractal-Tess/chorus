@@ -1,0 +1,13 @@
+{
+  "bos_token_id": 2,
+  "depth_decoder_do_sample": true,
+  "depth_decoder_temperature": 0.9,
+  "do_sample": true,
+  "eos_token_id": [
+    1
+  ],
+  "max_new_tokens": 750,
+  "pad_token_id": 0,
+  "temperature": 0.9,
+  "transformers_version": "4.57.3"
+}

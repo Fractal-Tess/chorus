@@ -26,7 +26,10 @@ def main() -> None:
     args = parser.parse_args()
     catalog = ModelCatalog(args.models_dir)
     if args.fetch_model:
-        catalog.fetch(args.fetch_model)
+        try:
+            catalog.fetch(args.fetch_model)
+        except (ValueError, RuntimeError) as error:
+            parser.error(str(error))
         return
     from mini_tts.devices import DevicePolicy, available_devices
 
@@ -46,6 +49,7 @@ def main() -> None:
         return
     from mini_tts.registry import EngineRegistry
 
+    registry = None
     try:
         registry = EngineRegistry(
             catalog,
@@ -56,13 +60,16 @@ def main() -> None:
         )
         for selector in args.preload:
             registry.preload(selector)
+        import uvicorn
+        from mini_tts import api
+
+        api.registry = registry
+        uvicorn.run(api.app, host=args.host, port=args.port)
     except (ValueError, RuntimeError) as error:
         parser.error(str(error))
-    import uvicorn
-    from mini_tts import api
-
-    api.registry = registry
-    uvicorn.run(api.app, host=args.host, port=args.port)
+    finally:
+        if registry is not None:
+            registry.close()
 
 
 if __name__ == "__main__":

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added Breeze TTS 2 CUDA voice design through an isolated, persistent worker with pinned inference source and a separate locked environment.
+- Stored Breeze model shards, audio tokenizer, provenance checksums, and non-commercial license under `models/breeze/tts-2`; large artifacts use Git LFS.
+- Added browser voice-description input and shared LavaSR/English alignment support for Breeze output, plus worker shutdown cleanup.
+- Kept CPU-only server startup from probing CUDA and made invalid model-fetch selectors report CLI usage errors.
 - Split the shared API into engine adapters, a versioned model catalog, per-model/device instance caching, and separate post-processing.
 - Added Kokoro CUDA inference, explicit device policy, device discovery, model selection, and startup warmup. RTX 3090 warm ONNX inference measured 94 ms for 3.125 seconds of speech versus 1,513 ms on CPU.
 - Added checksum-pinned Kokoro weights and 54 voices in Git LFS, with explicit model fetching and missing-LFS-pointer diagnostics.

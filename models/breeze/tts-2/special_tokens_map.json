@@ -1,0 +1,51 @@
+{
+  "additional_special_tokens": [
+    "[S0]",
+    "[S1]",
+    "[S2]",
+    "[S3]",
+    "[S4]",
+    "[S5]",
+    "[S6]",
+    "[S7]",
+    "[S8]",
+    "[S9]",
+    "<ins_bos>",
+    "<ins_eos>"
+  ],
+  "bos_token": {
+    "content": "<bos>",
+    "lstrip": false,
+    "normalized": false,
+    "rstrip": false,
+    "single_word": false
+  },
+  "eos_token": {
+    "content": "<eos>",
+    "lstrip": false,
+    "normalized": false,
+    "rstrip": false,
+    "single_word": false
+  },
+  "mask_token": {
+    "content": "<mask>",
+    "lstrip": false,
+    "normalized": false,
+    "rstrip": false,
+    "single_word": false
+  },
+  "pad_token": {
+    "content": "<pad>",
+    "lstrip": false,
+    "normalized": false,
+    "rstrip": false,
+    "single_word": false
+  },
+  "unk_token": {
+    "content": "<unk>",
+    "lstrip": false,
+    "normalized": false,
+    "rstrip": false,
+    "single_word": false
+  }
+}
