@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+PROJECT_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$PROJECT_ROOT"
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$PROJECT_ROOT/.venv/bin/python" -m chorus.cli "$@"

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 from pathlib import Path
 
@@ -7,7 +6,9 @@ from kittentts import KittenTTS
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Synthesize speech with Kitten TTS on CPU.")
+    parser = argparse.ArgumentParser(
+        description="Synthesize speech with Kitten TTS on CPU."
+    )
     parser.add_argument("text", help="Text to synthesize")
     parser.add_argument("-o", "--output", type=Path, default=Path("kitten_output.wav"))
     parser.add_argument("--voice", default="Leo")

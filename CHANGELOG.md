@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Consolidated shell launchers in `bin/`, standalone Python commands in `src/chorus/commands/`, and Tailwind configuration in `static/`; launcher names remain unchanged in the development shell.
+- Isolated the development flake and lock in `nix/`, with a direnv `path:` reference that keeps model weights out of Nix source snapshots.
 - Added local Fish Audio S2-Pro CUDA synthesis with pinned source, checksum-verified Git LFS weights, and a separate locked runtime.
 - Added Fish speaking-style controls, its multilingual catalog, and LavaSR/English alignment that excludes unspoken style and speaker markers.
 - Shared the persistent worker transport with Breeze. Fish initializes checkpoint parameters on the meta device to avoid a throwaway CPU model, and reports initialization failures without hanging on upstream's queue startup event.

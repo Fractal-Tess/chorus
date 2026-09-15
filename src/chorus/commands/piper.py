@@ -1,16 +1,19 @@
-#!/usr/bin/env python3
 import argparse
 import wave
 from pathlib import Path
 
 from piper import PiperVoice
 
+from chorus.models import ROOT
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Synthesize speech with Piper on CPU.")
     parser.add_argument("text", help="Text to synthesize")
     parser.add_argument("-o", "--output", type=Path, default=Path("piper_output.wav"))
-    parser.add_argument("--model", type=Path, default=Path(__file__).parent / "models/piper/en_US-lessac-medium.onnx")
+    parser.add_argument(
+        "--model", type=Path, default=ROOT / "models/piper/en_US-lessac-medium.onnx"
+    )
     args = parser.parse_args()
 
     if not args.model.is_file():

@@ -16,7 +16,7 @@ Chorus runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, Breeze TTS 2, a
 
 ## Run it
 
-The included Nix flake provides Python 3.12, `uv`, Git LFS, FFmpeg, SoX, eSpeak NG, libsndfile, and Tailwind CSS.
+The development flake in `nix/` provides Python 3.12, `uv`, Git LFS, FFmpeg, SoX, eSpeak NG, libsndfile, and Tailwind CSS. Run these commands from the repository root:
 
 ```bash
 direnv allow
@@ -25,6 +25,8 @@ git lfs pull --include="models/kokoro/**"
 serve-api --list-devices
 serve-api --devices cpu,cuda:0
 ```
+
+The development shell adds `bin/` to `PATH`, so launcher names are unchanged. Their files now live at `bin/serve-api`, `bin/kokoro-tts`, and the other `bin/*-tts` paths.
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api`.
 
@@ -93,10 +95,10 @@ Every successful speech response reports backend phase durations in milliseconds
 
 ## Development
 
-Dependencies are locked in `uv.lock` and synchronized when the development shell opens.
+Dependencies are locked in `uv.lock` and synchronized when the development shell opens. `.envrc` watches the Python dependency files and uses an explicit `path:` reference to `nix/`; model weights are not copied into the Nix flake source snapshot.
 
 ```bash
-nix develop
+nix develop path:./nix
 python -m compileall -q src/chorus
 ```
 
@@ -104,11 +106,13 @@ Rebuild the local Tailwind stylesheet after changing classes:
 
 ```bash
 tailwindcss \
-  -c tailwind.config.js \
+  -c static/tailwind.config.js \
   -i static/tailwind.input.css \
   -o static/tailwind.css \
   --minify
 ```
+
+Standalone Python commands live in `src/chorus/commands/`, their shell launchers in `bin/`, and browser assets and Tailwind configuration in `static/`. Generated audio and smoke reports belong in the ignored `outputs/` directory.
 
 Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches separate instances per engine, model, and device, with a lock per instance. Optional processing is separate in `processing.py`. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 

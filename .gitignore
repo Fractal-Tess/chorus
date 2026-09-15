@@ -5,11 +5,6 @@ __pycache__/
 .env
 .env.*
 outputs/
-
-# caches and environments
-.cache/
-.venv/
-__pycache__/
-.direnv/
-models/**/.cache/
 *.egg-info/
+.cache/
+.ruff_cache/
