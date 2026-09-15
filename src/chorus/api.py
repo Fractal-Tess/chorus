@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import threading
+import time
 import uuid
 from collections import OrderedDict
 from contextlib import asynccontextmanager
@@ -17,6 +18,7 @@ from chorus.devices import available_devices
 from chorus.engines import ENGINE_INFO
 from chorus.models import ROOT
 from chorus.registry import EngineRegistry
+from chorus.types import AUDIO_MEDIA_TYPES, ResponseFormat, encode_response
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chorus")
@@ -41,6 +43,10 @@ class SpeechRequest(BaseModel):
     engine: str
     model: str | None = None
     device: str | None = None
+    response_format: ResponseFormat = Field(
+        default="wav",
+        description="Output format: WAV PCM, MP3 (128 kbps), lossless FLAC, or Ogg Opus (64 kbps, 48 kHz).",
+    )
     input: str = Field(min_length=1, max_length=10_000)
     voice: str | None = Field(
         default=None,
@@ -200,7 +206,19 @@ def get_alignment(alignment_id: str) -> dict[str, object]:
         return alignment
 
 
-@app.post("/v1/audio/speech")
+@app.post(
+    "/v1/audio/speech",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Audio in the requested response_format (WAV by default).",
+            "content": {
+                media_type: {"schema": {"type": "string", "format": "binary"}}
+                for media_type in AUDIO_MEDIA_TYPES.values()
+            },
+        }
+    },
+)
 def create_speech(request: SpeechRequest) -> Response:
     if (
         request.force_align
@@ -212,6 +230,7 @@ def create_speech(request: SpeechRequest) -> Response:
             detail="Wav2Vec2 force alignment currently supports English speech only",
         )
 
+    started = time.perf_counter()
     try:
         audio = registry.synthesize(
             engine=request.engine,
@@ -224,6 +243,9 @@ def create_speech(request: SpeechRequest) -> Response:
             lava_sr=request.lava_sr,
             force_align=request.force_align,
         )
+        encoding_started = time.perf_counter()
+        content, sample_rate = encode_response(audio, request.response_format)
+        encoding_ms = (time.perf_counter() - encoding_started) * 1_000
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
@@ -232,13 +254,17 @@ def create_speech(request: SpeechRequest) -> Response:
             status_code=500, detail=f"{request.engine} synthesis failed: {error}"
         ) from error
 
-    timings = audio.timings_ms
+    timings = {
+        **audio.timings_ms,
+        "encoding": encoding_ms,
+        "total": (time.perf_counter() - started) * 1_000,
+    }
     headers = {
-        "Content-Disposition": f'attachment; filename="{request.engine}.wav"',
+        "Content-Disposition": f'attachment; filename="{request.engine}.{request.response_format}"',
         "X-TTS-Engine": request.engine,
         "X-TTS-Model": audio.model,
         "X-TTS-Device": audio.device,
-        "X-Sample-Rate": str(audio.sample_rate),
+        "X-Sample-Rate": str(sample_rate),
         "X-Audio-Duration": f"{audio.duration:.3f}",
         "X-LavaSR-Applied": str(request.lava_sr).lower(),
         "X-Force-Alignment-Applied": str(request.force_align).lower(),
@@ -246,12 +272,14 @@ def create_speech(request: SpeechRequest) -> Response:
         "X-Inference-Time-Ms": f"{timings['inference']:.1f}",
         "X-LavaSR-Time-Ms": f"{timings['lava_sr']:.1f}",
         "X-Alignment-Time-Ms": f"{timings['alignment']:.1f}",
+        "X-Encoding-Time-Ms": f"{timings['encoding']:.1f}",
         "X-Backend-Time-Ms": f"{timings['total']:.1f}",
         "Server-Timing": (
             f"queue;dur={timings['queue']:.1f}, "
             f"inference;dur={timings['inference']:.1f}, "
             f"lavasr;dur={timings['lava_sr']:.1f}, "
             f"alignment;dur={timings['alignment']:.1f}, "
+            f"encoding;dur={timings['encoding']:.1f}, "
             f"total;dur={timings['total']:.1f}"
         ),
     }
@@ -271,4 +299,8 @@ def create_speech(request: SpeechRequest) -> Response:
         headers["X-Alignment-Id"] = alignment_id
         headers["X-Alignment-Url"] = alignment_url
 
-    return Response(content=audio.wav, media_type="audio/wav", headers=headers)
+    return Response(
+        content=content,
+        media_type=AUDIO_MEDIA_TYPES[request.response_format],
+        headers=headers,
+    )

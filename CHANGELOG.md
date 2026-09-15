@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added `response_format` to speech requests for WAV (default), MP3, lossless FLAC, and Ogg Opus, with FFmpeg encoding, matching media types/download extensions, OpenAPI documentation, and encoding timing.
 - Added lazy isolated model workers with warm reuse, a configurable five-minute idle timeout, and least-recently-used eviction against optional aggregate RAM and per-GPU VRAM cache budgets.
 - Added `GET /v1/resources` and memory-budget CLI flags. Worker eviction releases optional processors and nested runtimes; device discovery no longer retains CUDA contexts in the API process.
 - Added `GET /v1/devices` with detected CPU/CUDA device IDs, enabled status, and the default device policy, including a response schema in the interactive API docs.

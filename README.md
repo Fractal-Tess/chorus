@@ -76,10 +76,11 @@ Pocket TTS dynamically quantizes its transformer attention and feed-forward laye
 
 ```bash
 curl --fail-with-body \
-  -X POST http://127.0.0.1:8787/v1/audio/speech \
+  -X POST http://127.0.0.1:8000/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -d '{
     "engine": "kokoro",
+    "response_format": "wav",
     "input": "The room fell quiet as the first page turned.",
     "voice": "af_heart",
     "language": "a",
@@ -94,6 +95,17 @@ Only `engine` and `input` are required. Set `lava_sr` to `true` to post-process 
 
 Optional `model` and `device` fields select a model version and device, for example `"model": "82m-v1.0", "device": "cuda:0"`. Responses report the resolved choice in `X-TTS-Model` and `X-TTS-Device`. Enhancement runs before alignment so word timestamps match the returned audio.
 
+Set `response_format` to choose the output. WAV is the default and needs no encoder process; the other formats use the bundled FFmpeg after enhancement and alignment.
+
+| `response_format` | Output | Content type |
+| --- | --- | --- |
+| `wav` | Lossless 16-bit PCM WAV | `audio/wav` |
+| `mp3` | MP3 at 128 kbps | `audio/mpeg` |
+| `flac` | Lossless FLAC | `audio/flac` |
+| `opus` | Ogg Opus at 64 kbps, 48 kHz | `audio/ogg` |
+
+For example, send `"response_format": "mp3"` and save the response as `speech.mp3`. `Content-Disposition` supplies the matching extension; `X-Sample-Rate` reports the output decoding rate. `X-Audio-Duration` and alignment timestamps describe the generated speech before encoding; MP3 can add a small amount of codec delay and padding. Unsupported formats return HTTP 422. Outside the Nix shell, install FFmpeg with `libmp3lame`, `flac`, and `libopus` encoders.
+
 ## API
 
 | Method | Path | Purpose |
@@ -103,7 +115,7 @@ Optional `model` and `device` fields select a model version and device, for exam
 | `GET` | `/v1/resources` | Worker RAM/VRAM usage, soft cache budgets, and idle state |
 | `GET` | `/v1/engines` | Engines, voices, languages, and defaults |
 | `GET` | `/v1/models` | Model versions, supported/allowed devices, loaded instances |
-| `POST` | `/v1/audio/speech` | Generate a WAV response |
+| `POST` | `/v1/audio/speech` | Generate WAV, MP3, FLAC, or Ogg Opus audio |
 | `GET` | `/v1/audio/alignments/{id}` | Retrieve a generated word-alignment sidecar |
 | `GET` | `/docs` | OpenAPI console |
 
@@ -111,9 +123,9 @@ Optional `model` and `device` fields select a model version and device, for exam
 
 The speech endpoint accepts text up to 10,000 characters and a speed from `0.5` to `2.0`. Pocket TTS, Breeze, and Fish use a fixed speed of `1.0`. LavaSR and force alignment are disabled unless the request explicitly enables them.
 
-English force alignment uses the permissively licensed `WAV2VEC2_ASR_BASE_960H` model. Its 378 MB weights download on the first aligned request and stay loaded until their model worker is evicted. An aligned WAV response includes `X-Alignment-Id` and `X-Alignment-Url`; fetch that URL for word-level `start_ms`, `end_ms`, and confidence scores. The in-memory sidecar cache retains the 32 most recently accessed alignments and resets with the API process. Words without supported English letters are omitted.
+English force alignment uses the permissively licensed `WAV2VEC2_ASR_BASE_960H` model. Its 378 MB weights download on the first aligned request and stay loaded until their model worker is evicted. An aligned audio response includes `X-Alignment-Id` and `X-Alignment-Url`; fetch that URL for word-level `start_ms`, `end_ms`, and confidence scores. The in-memory sidecar cache retains the 32 most recently accessed alignments and resets with the API process. Words without supported English letters are omitted.
 
-Every successful speech response reports backend phase durations in milliseconds through `X-Queue-Time-Ms`, `X-Inference-Time-Ms`, `X-LavaSR-Time-Ms`, `X-Alignment-Time-Ms`, and `X-Backend-Time-Ms`. The same values are included in the standard `Server-Timing` header and shown with the latest render in the browser console. Inference and alignment timings include lazy model loading on a cold request.
+Every successful speech response reports backend phase durations in milliseconds through `X-Queue-Time-Ms`, `X-Inference-Time-Ms`, `X-LavaSR-Time-Ms`, `X-Alignment-Time-Ms`, `X-Encoding-Time-Ms`, and `X-Backend-Time-Ms`. `Server-Timing` includes the same phases, and backend total includes encoding. The browser console shows synthesis and processing timing. Inference and alignment timings include lazy model loading on a cold request.
 
 ## Development
 
