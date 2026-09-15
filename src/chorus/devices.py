@@ -1,37 +1,47 @@
 from __future__ import annotations
 
 import ctypes
-import threading
+import json
+import subprocess
+import sys
 from functools import lru_cache
-
-import onnxruntime as ort
-import numpy as np
-
-_preload_lock = threading.Lock()
 
 
 @lru_cache(maxsize=1)
 def available_devices() -> dict[str, str]:
-    """Probe CUDA runtime allocation, respecting CUDA_VISIBLE_DEVICES."""
+    """Probe in a short-lived process so discovery retains no CUDA contexts."""
+    result = subprocess.run(
+        [sys.executable, "-m", "chorus.devices"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Device discovery failed: {result.stderr.strip()}")
+    return json.loads(result.stdout)
+
+
+def _probe_devices() -> dict[str, str]:
+    import numpy as np
+    import onnxruntime as ort
+
     result = {"cpu": "CPU"}
     if "CUDAExecutionProvider" not in ort.get_available_providers():
         return result
-    with _preload_lock:
-        ort.preload_dlls(directory="")
-        try:
-            cuda = ctypes.CDLL("libcudart.so.12")
-            count = ctypes.c_int()
-            if cuda.cudaGetDeviceCount(ctypes.byref(count)) != 0:
-                return result
-            for index in range(count.value):
-                # This tests actual CUDA allocation, not just compiled-in provider support.
-                value = ort.OrtValue.ortvalue_from_numpy(
-                    np.zeros(1, dtype=np.float32), "cuda", index
-                )
-                result[f"cuda:{index}"] = f"CUDA device {index}"
-                del value
-        except (OSError, RuntimeError):
+    ort.preload_dlls(directory="")
+    try:
+        cuda = ctypes.CDLL("libcudart.so.12")
+        count = ctypes.c_int()
+        if cuda.cudaGetDeviceCount(ctypes.byref(count)) != 0:
             return result
+        for index in range(count.value):
+            value = ort.OrtValue.ortvalue_from_numpy(
+                np.zeros(1, dtype=np.float32), "cuda", index
+            )
+            result[f"cuda:{index}"] = f"CUDA device {index}"
+            del value
+    except (OSError, RuntimeError):
+        return result
     return result
 
 
@@ -65,3 +75,7 @@ class DevicePolicy:
         if requested.split(":")[0] not in supported:
             raise ValueError(f"This model does not support {requested}")
         return requested
+
+
+if __name__ == "__main__":
+    print(json.dumps(_probe_devices()))

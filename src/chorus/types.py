@@ -4,9 +4,6 @@ import io
 from dataclasses import dataclass, field
 from typing import Any
 
-import numpy as np
-import soundfile as sf
-
 
 @dataclass(frozen=True)
 class WordAlignment:
@@ -28,6 +25,9 @@ class AudioResult:
 
 
 def encode_wav(audio: Any, sample_rate: int) -> AudioResult:
+    import numpy as np
+    import soundfile as sf
+
     samples = np.asarray(audio, dtype=np.float32).squeeze()
     if samples.ndim != 1 or samples.size == 0:
         raise RuntimeError("Engine produced no audio")

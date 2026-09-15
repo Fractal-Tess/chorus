@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.metadata
 import logging
 import threading
 import uuid
@@ -7,14 +8,13 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 
-import torch
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from chorus.engines import ENGINE_INFO
 from chorus.devices import available_devices
+from chorus.engines import ENGINE_INFO
 from chorus.models import ROOT
 from chorus.registry import EngineRegistry
 
@@ -23,7 +23,9 @@ logger = logging.getLogger("chorus")
 
 
 class DeviceInfo(BaseModel):
-    id: str = Field(description="Device ID accepted by speech requests, e.g. cpu or cuda:0.")
+    id: str = Field(
+        description="Device ID accepted by speech requests, e.g. cpu or cuda:0."
+    )
     type: str = Field(description="Execution device type: cpu or cuda.")
     enabled: bool = Field(description="Whether server policy permits this device.")
 
@@ -105,7 +107,7 @@ def health() -> dict[str, object]:
         "device": registry.policy.default,
         "allowed_devices": registry.policy.allowed,
         "loaded_models": registry.loaded_models(),
-        "torch": torch.__version__,
+        "torch": importlib.metadata.version("torch"),
         "cuda_available": any(d.startswith("cuda:") for d in registry.policy.allowed),
         "loaded_engines": registry.loaded_engines(),
     }
@@ -129,6 +131,18 @@ def devices() -> dict[str, object]:
             for device in available_devices()
         ],
     }
+
+
+@app.get("/v1/resources")
+def resources() -> dict[str, object]:
+    """Report worker resource usage and soft cache budgets.
+
+    RAM and VRAM budgets are soft eviction targets for Chorus worker process
+    trees. They exclude this parent API process and unrelated processes.
+    Workers are evicted after the configured idle timeout; a timeout of zero
+    unloads a worker immediately after its request.
+    """
+    return registry.resource_status()
 
 
 @app.get("/v1/engines")

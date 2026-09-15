@@ -17,14 +17,18 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    audio = EngineRegistry().synthesize(
-        "kokoro",
-        args.text,
-        voice=args.voice,
-        language=args.language,
-        speed=args.speed,
-        device=args.device,
-    )
+    registry = EngineRegistry()
+    try:
+        audio = registry.synthesize(
+            "kokoro",
+            args.text,
+            voice=args.voice,
+            language=args.language,
+            speed=args.speed,
+            device=args.device,
+        )
+    finally:
+        registry.close()
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(audio.wav)

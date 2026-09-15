@@ -11,7 +11,7 @@
 Chorus runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, Breeze TTS 2, and Fish Audio S2-Pro on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
 
 - No hosted speech API required. Kokoro supports CPU/CUDA; Breeze and Fish require CUDA.
-- Models load on demand and stay warm for later requests.
+- Models load on demand, stay warm between requests, and unload after five idle minutes.
 - Narration picks are grouped in the console, with optional LavaSR enhancement to 48 kHz.
 
 ## Run it
@@ -37,6 +37,24 @@ For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selec
 `--devices` restricts execution to listed devices. `--default-device auto` prefers an enabled GPU when the selected model supports it, otherwise CPU. Explicit unavailable or unsupported devices are errors; Kokoro refuses whole-session CPU fallback. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` loads and warms the model before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
 
 CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The environment includes CUDA 12 and cuDNN runtime libraries; an NVIDIA driver is still required. On NixOS, the launcher includes `/run/opengl-driver/lib`. PyTorch and the optional processors remain CPU-based.
+
+### Memory and idle unloading
+
+Startup loads no models unless `--preload` is supplied. Each model/device pair runs in its own worker process, retaining weights and optional post-processing models between requests. `--idle-timeout` sets the idle lifetime in seconds (default `300`; `0` unloads after every request). Eviction exits the worker and its nested runtimes, releasing their RAM and GPU allocations. The API process remains running with a small RAM footprint.
+
+Set an aggregate worker RAM budget and separate VRAM budgets for enabled GPUs:
+
+```bash
+serve-api --devices cpu,cuda:0,cuda:1 \
+  --idle-timeout 300 \
+  --ram-budget-mib 8192 \
+  --vram-budget-mib cuda:0=4096 \
+  --vram-budget-mib cuda:1=4096
+```
+
+Budgets are optional, soft cache targets, not hard allocation limits. Loading and active requests may exceed them. Least-recently-used idle workers are evicted under pressure; active or queued requests are never evicted. A model larger than its budget can serve a request but is unloaded afterward. RAM accounting sums worker-tree RSS (shared pages may be counted more than once); budgets exclude the API process and unrelated applications. VRAM budgets require working `nvidia-smi` telemetry and respect CUDA's logical device ordering.
+
+`GET /v1/resources` reports budgets, worker RAM/VRAM usage, active requests, and idle age. With no workers loaded, model usage is zero and background cache monitoring sleeps. First requests after eviction pay the cold-load cost again.
 
 ## Engines
 
@@ -82,6 +100,7 @@ Optional `model` and `device` fields select a model version and device, for exam
 | --- | --- | --- |
 | `GET` | `/health` | Runtime and loaded-engine status |
 | `GET` | `/v1/devices` | Detected CPU/CUDA devices, enabled status, and default device policy |
+| `GET` | `/v1/resources` | Worker RAM/VRAM usage, soft cache budgets, and idle state |
 | `GET` | `/v1/engines` | Engines, voices, languages, and defaults |
 | `GET` | `/v1/models` | Model versions, supported/allowed devices, loaded instances |
 | `POST` | `/v1/audio/speech` | Generate a WAV response |
@@ -92,7 +111,7 @@ Optional `model` and `device` fields select a model version and device, for exam
 
 The speech endpoint accepts text up to 10,000 characters and a speed from `0.5` to `2.0`. Pocket TTS, Breeze, and Fish use a fixed speed of `1.0`. LavaSR and force alignment are disabled unless the request explicitly enables them.
 
-English force alignment uses the permissively licensed `WAV2VEC2_ASR_BASE_960H` model. Its 378 MB weights download on the first aligned request and remain loaded afterward. An aligned WAV response includes `X-Alignment-Id` and `X-Alignment-Url`; fetch that URL for word-level `start_ms`, `end_ms`, and confidence scores. The in-memory sidecar cache retains the 32 most recently accessed alignments and resets with the API process. Words without supported English letters are omitted.
+English force alignment uses the permissively licensed `WAV2VEC2_ASR_BASE_960H` model. Its 378 MB weights download on the first aligned request and stay loaded until their model worker is evicted. An aligned WAV response includes `X-Alignment-Id` and `X-Alignment-Url`; fetch that URL for word-level `start_ms`, `end_ms`, and confidence scores. The in-memory sidecar cache retains the 32 most recently accessed alignments and resets with the API process. Words without supported English letters are omitted.
 
 Every successful speech response reports backend phase durations in milliseconds through `X-Queue-Time-Ms`, `X-Inference-Time-Ms`, `X-LavaSR-Time-Ms`, `X-Alignment-Time-Ms`, and `X-Backend-Time-Ms`. The same values are included in the standard `Server-Timing` header and shown with the latest render in the browser console. Inference and alignment timings include lazy model loading on a cold request.
 
@@ -117,7 +136,7 @@ tailwindcss \
 
 Standalone Python commands live in `src/chorus/commands/`, their shell launchers in `bin/`, and browser assets and Tailwind configuration in `static/`. Generated audio and smoke reports belong in the ignored `outputs/` directory.
 
-Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches separate instances per engine, model, and device, with a lock per instance. Optional processing is separate in `processing.py`. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
+Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device, serializing requests to each worker while allowing different workers to run concurrently. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 
 ### Kokoro GPU measurement
 
