@@ -14,6 +14,7 @@ const elements = {
   voice: document.querySelector('#voice-select'),
   voiceDescription: document.querySelector('#voice-description'),
   voiceLabel: document.querySelector('#voice-label'),
+  voiceTitle: document.querySelector('#voice-title'),
   voiceChevron: document.querySelector('#voice-chevron'),
   narrationBadge: document.querySelector('#narration-badge'),
   language: document.querySelector('#language-select'),
@@ -54,9 +55,11 @@ const languageNames = {
   a: 'American English', b: 'British English', e: 'Spanish', f: 'French', h: 'Hindi', i: 'Italian', j: 'Japanese', p: 'Portuguese', z: 'Mandarin',
   en: 'English', 'en-US': 'English (US)', english: 'English', french_24l: 'French', spanish_24l: 'Spanish', german_24l: 'German', italian_24l: 'Italian', portuguese_24l: 'Portuguese',
   ko: 'Korean', ja: 'Japanese', ar: 'Arabic', bg: 'Bulgarian', cs: 'Czech', da: 'Danish', de: 'German', el: 'Greek', es: 'Spanish', et: 'Estonian', fi: 'Finnish', fr: 'French', hi: 'Hindi', hr: 'Croatian', hu: 'Hungarian', id: 'Indonesian', it: 'Italian', lt: 'Lithuanian', lv: 'Latvian', nl: 'Dutch', pl: 'Polish', pt: 'Portuguese', ro: 'Romanian', ru: 'Russian', sk: 'Slovak', sl: 'Slovenian', sv: 'Swedish', tr: 'Turkish', uk: 'Ukrainian', vi: 'Vietnamese', na: 'Language agnostic',
+  zh: 'Chinese',
 };
 
 const englishAlignmentLanguages = new Set(['a', 'b', 'en', 'en-US', 'en-us', 'en-gb', 'english']);
+const voiceInputLabels = { description: 'Voice design', style: 'Style control' };
 
 const narrationFavorites = {
   pocket: ['peter_yearsley'],
@@ -101,7 +104,7 @@ function renderEngineCards() {
           <span class="size-1.5 rounded-full ${engine.loaded ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}"></span>
         </span>
         <span class="block text-sm font-black tracking-[-0.02em]">${escapeHtml(engine.label)}</span>
-        <span class="mt-1 block text-[10px] ${active ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}">${engine.voice_input === 'description' ? 'Voice design' : `${engine.voices.length} ${engine.voices.length === 1 ? 'voice' : 'voices'}`}</span>
+        <span class="mt-1 block text-[10px] ${active ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}">${voiceInputLabels[engine.voice_input] || `${engine.voices.length} ${engine.voices.length === 1 ? 'voice' : 'voices'}`}</span>
       </button>`;
   }).join('');
 
@@ -148,30 +151,36 @@ function selectEngine(id) {
   state.engine = state.engines.find((engine) => engine.id === id);
   if (!state.engine) return;
 
-  const voiceDesign = state.engine.voice_input === 'description';
-  elements.voice.hidden = voiceDesign;
-  elements.voiceChevron.classList.toggle('hidden', voiceDesign);
-  elements.voiceDescription.hidden = !voiceDesign;
-  elements.voiceLabel.htmlFor = voiceDesign ? 'voice-description' : 'voice-select';
+  const freeformVoice = Boolean(voiceInputLabels[state.engine.voice_input]);
+  const styleInput = state.engine.voice_input === 'style';
+  elements.voice.hidden = freeformVoice;
+  elements.voiceChevron.classList.toggle('hidden', freeformVoice);
+  elements.voiceDescription.hidden = !freeformVoice;
+  elements.voiceLabel.htmlFor = freeformVoice ? 'voice-description' : 'voice-select';
+  elements.voiceTitle.textContent = styleInput ? 'Style' : 'Voice';
+  elements.voiceDescription.setAttribute('aria-label', styleInput ? 'Style direction' : 'Voice description');
+  elements.voiceDescription.placeholder = styleInput ? 'e.g. calm narration (optional)' : 'Describe a voice (optional)';
   fillVoiceSelect(state.engine);
   fillSelect(elements.language, state.engine.languages, state.engine.default_language, (value) => languageNames[value] || value);
   updateNarrationBadge();
   updateAlignmentAvailability();
   elements.engineName.textContent = state.engine.label;
   elements.engineSummary.textContent = state.engine.summary;
-  elements.voiceCount.textContent = voiceDesign ? 'Voice design' : state.engine.voices.length;
+  elements.voiceCount.textContent = voiceInputLabels[state.engine.voice_input] || state.engine.voices.length;
   elements.sampleRate.textContent = `${(state.engine.sample_rate / 1000).toFixed(state.engine.sample_rate % 1000 ? 2 : 0)} kHz`;
   elements.loadedBadge.textContent = state.engine.loaded ? 'Warm' : 'Cold';
   elements.loadedBadge.className = state.engine.loaded
     ? 'rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
     : 'rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400';
 
-  const supportsSpeed = !['pocket', 'breeze'].includes(id);
+  const supportsSpeed = !['pocket', 'breeze', 'fish'].includes(id);
   elements.speed.disabled = !supportsSpeed;
   if (!supportsSpeed) {
     elements.speed.value = '1';
     elements.speedValue.textContent = '1.00×';
-    elements.formNote.textContent = `${state.engine.label} uses a fixed speaking speed.`;
+    elements.formNote.textContent = styleInput
+      ? 'Use [whisper] or [excited] in the text for inline direction. Speaking speed is fixed.'
+      : `${state.engine.label} uses a fixed speaking speed.`;
   } else {
     elements.formNote.textContent = state.engine.loaded ? 'Model is warm and ready.' : 'First render loads the model; later renders are faster.';
   }
@@ -312,7 +321,7 @@ async function generateSpeech(event) {
   }
   const useLavaSr = elements.lavaSr.checked;
   const useForceAlign = elements.forceAlign.checked;
-  const voice = state.engine.voice_input === 'description'
+  const voice = voiceInputLabels[state.engine.voice_input]
     ? elements.voiceDescription.value.trim() || null
     : elements.voice.value;
 

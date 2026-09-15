@@ -126,7 +126,10 @@ class EngineRegistry:
             },
         )
         audio = self.processor.process(
-            audio, text, lava_sr=lava_sr, force_align=force_align
+            audio,
+            instance.alignment_text(text) if force_align else text,
+            lava_sr=lava_sr,
+            force_align=force_align,
         )
         return replace(
             audio,

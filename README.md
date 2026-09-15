@@ -8,9 +8,9 @@
   <img src="https://img.shields.io/badge/environment-Nix%20flake-5277C3?logo=nixos&logoColor=white" alt="Nix flake">
 </p>
 
-Chorus runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, and Breeze TTS 2 on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
+Chorus runs Pocket TTS, Kokoro, Piper, Kitten TTS, Supertonic 3, Breeze TTS 2, and Fish Audio S2-Pro on one machine. Use the browser to compare voices and render waveforms, or call the shared HTTP endpoint from another application.
 
-- No hosted speech API required. Kokoro supports CPU/CUDA; Breeze requires CUDA.
+- No hosted speech API required. Kokoro supports CPU/CUDA; Breeze and Fish require CUDA.
 - Models load on demand and stay warm for later requests.
 - Narration picks are grouped in the console, with optional LavaSR enhancement to 48 kHz.
 
@@ -46,6 +46,7 @@ CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The envir
 | Kitten TTS | `Leo` | 24 kHz | Eight lightweight English voices |
 | Supertonic 3 | `M1` | 44.1 kHz | Ten voices and multilingual synthesis |
 | Breeze TTS 2 | Voice description | 24 kHz | English/Chinese; CUDA; research/non-commercial license |
+| Fish Audio S2-Pro | Optional speaking style | 44.1 kHz | Multilingual; CUDA; research/non-commercial license |
 
 For English narration, start with Kokoro `af_heart`. The console also marks expressive, audiobook, documentary, and British narration alternatives.
 
@@ -84,7 +85,7 @@ Optional `model` and `device` fields select a model version and device, for exam
 | `GET` | `/v1/audio/alignments/{id}` | Retrieve a generated word-alignment sidecar |
 | `GET` | `/docs` | OpenAPI console |
 
-The speech endpoint accepts text up to 10,000 characters and a speed from `0.5` to `2.0`. Pocket TTS uses a fixed speed. LavaSR and force alignment are disabled unless the request explicitly enables them.
+The speech endpoint accepts text up to 10,000 characters and a speed from `0.5` to `2.0`. Pocket TTS, Breeze, and Fish use a fixed speed of `1.0`. LavaSR and force alignment are disabled unless the request explicitly enables them.
 
 English force alignment uses the permissively licensed `WAV2VEC2_ASR_BASE_960H` model. Its 378 MB weights download on the first aligned request and remain loaded afterward. An aligned WAV response includes `X-Alignment-Id` and `X-Alignment-Url`; fetch that URL for word-level `start_ms`, `end_ms`, and confidence scores. The in-memory sidecar cache retains the 32 most recently accessed alignments and resets with the API process. Words without supported English letters are omitted.
 
@@ -135,4 +136,26 @@ Breeze loads its local checkpoint and audio tokenizer with Hugging Face offline 
 
 The [Breeze model license](https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE) restricts the weights and self-hosted outputs to research/non-commercial use. The Apache-2.0 inference code does not grant commercial rights to the model. The license is retained beside the LFS artifacts. Commercial use requires separate permission.
 
-Large engines can use adapter packages rather than a single file and can own isolated workers like Breeze. Model manifests support multiple shards, tokenizers, and codecs. Adding Index TTS or Fish TTS does not require their dependencies to share the API environment. Reference-audio upload and cloning controls are not part of the current API.
+Large engines can use adapter packages rather than a single file and can own isolated workers like Breeze and Fish. Model manifests support multiple shards, tokenizers, and codecs. Their dependencies do not share the API environment. Reference-audio upload and cloning controls are not part of the current API.
+
+### Fish setup
+
+[Fish Audio S2-Pro](https://github.com/fishaudio/fish-speech) runs locally in `runtimes/fish/`, with pinned inference source and a separate CUDA PyTorch 2.9.1 environment. This is S2-Pro, not the separate [hosted S2.1-Pro offering](https://docs.fish.audio/developer-guide/models-pricing/models-overview). The upstream installation guide calls for a 24 GB GPU.
+
+```bash
+git submodule update --init runtimes/fish/upstream
+uv sync --project runtimes/fish --locked --python "$UV_PYTHON"
+git lfs pull --include="models/fish/**"
+# Alternatively: serve-api --fetch-model fish/s2-pro
+serve-api --engines fish --devices cuda:0
+```
+
+Use `"engine": "fish", "model": "s2-pro", "device": "cuda:0"` with the shared speech endpoint. Put natural-language cues in `input`, for example `"[whisper] Close the door quietly."`. The optional `voice` field adds a leading style cue such as `"warm narration"`; it is not a named voice, reference-audio path, or voice clone. The browser labels this field **Style**.
+
+Language is inferred from the text, not translated. The language list follows the upstream model card; English and Chinese generation were verified locally. Set `language` to `en` for English alignment. Fish's bracket cues and speaker markers are excluded from word timestamps. LavaSR still runs before alignment and returns 48 kHz audio.
+
+Inference is local-only, eager BF16, with the full 32,768-token model context. The worker loads checkpoint parameters without allocating a throwaway FP32 CPU model. On an RTX 3090, two warm requests took a median 22.25 seconds for 3.48 seconds of audio; cold startup plus synthesis took 56.44 seconds. This configuration is not real-time, and compilation is not enabled.
+
+The warm Fish worker occupied about 19 GiB of GPU memory. Fish and Breeze do not fit together on one 24 GB GPU; use a Fish-only server or select separate GPUs through the API's `device` field.
+
+The bundle is about 11 GB, plus another copy in the local Git LFS object store. **Built with Fish Audio.** The [Fish Audio Research License](models/fish/s2-pro/LICENSE.md) covers both upstream code and weights. Research and non-commercial use are permitted; commercial use requires a separate written agreement. The license and required `NOTICE` are retained with the model.

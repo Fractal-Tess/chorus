@@ -26,7 +26,10 @@ class SpeechRequest(BaseModel):
     model: str | None = None
     device: str | None = None
     input: str = Field(min_length=1, max_length=10_000)
-    voice: str | None = None
+    voice: str | None = Field(
+        default=None,
+        description="Named voice for most engines; natural-language voice description for Breeze or speaking style for Fish. Fish reference-audio cloning is not exposed.",
+    )
     language: str | None = None
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
     lava_sr: bool = Field(

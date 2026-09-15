@@ -1,3 +1,6 @@
 [submodule "runtimes/breeze/upstream"]
 	path = runtimes/breeze/upstream
 	url = https://github.com/breezeblue-ai/breeze-tts.git
+[submodule "runtimes/fish/upstream"]
+	path = runtimes/fish/upstream
+	url = https://github.com/fishaudio/fish-speech.git

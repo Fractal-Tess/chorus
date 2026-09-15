@@ -19,6 +19,9 @@ class Engine:
             self._cache[key] = loader()
         return self._cache[key]
 
+    def alignment_text(self, text: str) -> str:
+        return text
+
     def synthesize(
         self, text: str, voice: str | None, language: str | None, speed: float
     ) -> AudioResult:

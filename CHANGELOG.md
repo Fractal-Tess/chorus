@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added local Fish Audio S2-Pro CUDA synthesis with pinned source, checksum-verified Git LFS weights, and a separate locked runtime.
+- Added Fish speaking-style controls, its multilingual catalog, and LavaSR/English alignment that excludes unspoken style and speaker markers.
+- Shared the persistent worker transport with Breeze. Fish initializes checkpoint parameters on the meta device to avoid a throwaway CPU model, and reports initialization failures without hanging on upstream's queue startup event.
 - Renamed Mini TTS to Chorus, including the Python package, API/browser branding, and isolated Breeze runtime metadata.
 - Added Breeze TTS 2 CUDA voice design through an isolated, persistent worker with pinned inference source and a separate locked environment.
 - Stored Breeze model shards, audio tokenizer, provenance checksums, and non-commercial license under `models/breeze/tts-2`; large artifacts use Git LFS.
