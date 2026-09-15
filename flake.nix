@@ -1,5 +1,5 @@
 {
-  description = "CPU-only local TTS development environment";
+  description = "Local CPU and CUDA TTS development environment";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -12,6 +12,7 @@
         packages = with pkgs; [
           espeak-ng
           ffmpeg
+          git-lfs
           libsndfile
           python312
           tailwindcss
@@ -20,7 +21,7 @@
         ];
 
         env = {
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+          LD_LIBRARY_PATH = "/run/opengl-driver/lib:" + pkgs.lib.makeLibraryPath [
             pkgs.stdenv.cc.cc
             pkgs.zlib
             pkgs.libsndfile

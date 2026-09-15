@@ -2,4 +2,5 @@
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$SCRIPT_DIR"
-exec "$SCRIPT_DIR/.venv/bin/uvicorn" tts_api:app --host "${TTS_HOST:-127.0.0.1}" --port "${TTS_PORT:-8000}" "$@"
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$SCRIPT_DIR/.venv/bin/python" -m mini_tts.cli "$@"

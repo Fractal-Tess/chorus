@@ -1,0 +1,7 @@
+{
+  "default": true,
+  "devices": [
+    "cpu"
+  ],
+  "artifacts": {}
+}

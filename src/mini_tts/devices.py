@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+import ctypes
+import threading
+from functools import lru_cache
+
+import onnxruntime as ort
+import numpy as np
+
+_preload_lock = threading.Lock()
+
+
+@lru_cache(maxsize=1)
+def available_devices() -> dict[str, str]:
+    """Probe CUDA runtime allocation, respecting CUDA_VISIBLE_DEVICES."""
+    result = {"cpu": "CPU"}
+    if "CUDAExecutionProvider" not in ort.get_available_providers():
+        return result
+    with _preload_lock:
+        ort.preload_dlls(directory="")
+        try:
+            cuda = ctypes.CDLL("libcudart.so.12")
+            count = ctypes.c_int()
+            if cuda.cudaGetDeviceCount(ctypes.byref(count)) != 0:
+                return result
+            for index in range(count.value):
+                # This tests actual CUDA allocation, not just compiled-in provider support.
+                value = ort.OrtValue.ortvalue_from_numpy(
+                    np.zeros(1, dtype=np.float32), "cuda", index
+                )
+                result[f"cuda:{index}"] = f"CUDA device {index}"
+                del value
+        except (OSError, RuntimeError):
+            return result
+    return result
+
+
+class DevicePolicy:
+    def __init__(self, allowed: list[str] | None = None, default: str = "auto"):
+        available = available_devices()
+        self.allowed = list(
+            dict.fromkeys(allowed if allowed is not None else available)
+        )
+        if not self.allowed:
+            raise ValueError("At least one device must be enabled")
+        for device in self.allowed:
+            if device not in available:
+                raise ValueError(
+                    f"Device {device} is unavailable; available: {', '.join(available)}"
+                )
+        if default != "auto" and default not in self.allowed:
+            raise ValueError(f"Default device {default} is not enabled")
+        self.default = default
+
+    def resolve(self, supported: list[str], requested: str | None = None) -> str:
+        requested = requested or self.default
+        if requested == "auto":
+            choices = [d for d in self.allowed if d.split(":")[0] in supported]
+            choices.sort(key=lambda d: d == "cpu")
+            if not choices:
+                raise ValueError("This model has no supported, enabled device")
+            return choices[0]
+        if requested not in self.allowed:
+            raise ValueError(f"Device {requested} is not enabled")
+        if requested.split(":")[0] not in supported:
+            raise ValueError(f"This model does not support {requested}")
+        return requested

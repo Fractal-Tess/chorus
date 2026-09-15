@@ -4,7 +4,6 @@ __pycache__/
 *.py[cod]
 .env
 .env.*
-models/
 outputs/
 
 # caches and environments
@@ -12,4 +11,5 @@ outputs/
 .venv/
 __pycache__/
 .direnv/
-models/
+models/**/.cache/
+*.egg-info/

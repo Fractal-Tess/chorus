@@ -1,10 +1,10 @@
 <h1 align="center">Mini TTS</h1>
 
-<p align="center"><strong>Five local text-to-speech engines behind one CPU-only API and browser console.</strong></p>
+<p align="center"><strong>Local text-to-speech engines behind one CPU/CUDA API and browser console.</strong></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
-  <img src="https://img.shields.io/badge/inference-CPU%20only-0f172a" alt="CPU-only inference">
+  <img src="https://img.shields.io/badge/inference-CPU%20%2B%20CUDA-0f172a" alt="CPU and CUDA inference">
   <img src="https://img.shields.io/badge/environment-Nix%20flake-5277C3?logo=nixos&logoColor=white" alt="Nix flake">
 </p>
 
@@ -20,19 +20,26 @@ The included Nix flake provides Python 3.12, `uv`, FFmpeg, eSpeak NG, libsndfile
 
 ```bash
 direnv allow
-serve-api
+git lfs install
+git lfs pull --include="models/kokoro/**"
+serve-api --list-devices
+serve-api --devices cpu,cuda:0
 ```
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api`.
 
-Model files download on first use. The first render for an engine is therefore slower than later renders.
+Kokoro weights and all 54 voice tensors live in `models/kokoro/82m-v1.0/`, tracked with Git LFS. Missing files can also be fetched from checksum-verified, pinned upstream revisions with `serve-api --fetch-model kokoro/82m-v1.0`. Inference never downloads Kokoro weights or voice tensors. Language-processing resources and the other engines' upstream libraries retain their existing download behavior.
+
+`--devices` restricts execution to listed devices. `--default-device auto` prefers an enabled GPU when the selected model supports it, otherwise CPU. Explicit unavailable or unsupported devices are errors; Kokoro refuses whole-session CPU fallback. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` loads and warms the model before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
+
+CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The environment includes CUDA 12 and cuDNN runtime libraries; an NVIDIA driver is still required. On NixOS, the launcher includes `/run/opengl-driver/lib`. PyTorch and the optional processors remain CPU-based.
 
 ## Engines
 
 | Engine | Default voice | Sample rate | Notes |
 | --- | --- | ---: | --- |
 | Pocket TTS | `alba` | 24 kHz | INT8-optimized voice cloning and multilingual models |
-| Kokoro | `af_heart` | 24 kHz | 54 voices; FP32 ONNX inference |
+| Kokoro | `af_heart` | 24 kHz | 54 voices; FP32 ONNX on CPU or CUDA |
 | Piper | `en_US-lessac-medium` | 22.05 kHz | Small, dependable English model |
 | Kitten TTS | `Leo` | 24 kHz | Eight lightweight English voices |
 | Supertonic 3 | `M1` | 44.1 kHz | Ten voices and multilingual synthesis |
@@ -61,12 +68,15 @@ curl --fail-with-body \
 
 Only `engine` and `input` are required. Set `lava_sr` to `true` to post-process the generated speech at 48 kHz. Set `force_align` to `true` for English word timestamps. Engine-specific defaults are listed by `GET /v1/engines`.
 
+Optional `model` and `device` fields select a model version and device, for example `"model": "82m-v1.0", "device": "cuda:0"`. Responses report the resolved choice in `X-TTS-Model` and `X-TTS-Device`. Enhancement runs before alignment so word timestamps match the returned audio.
+
 ## API
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Runtime and loaded-engine status |
 | `GET` | `/v1/engines` | Engines, voices, languages, and defaults |
+| `GET` | `/v1/models` | Model versions, supported/allowed devices, loaded instances |
 | `POST` | `/v1/audio/speech` | Generate a WAV response |
 | `GET` | `/v1/audio/alignments/{id}` | Retrieve a generated word-alignment sidecar |
 | `GET` | `/docs` | OpenAPI console |
@@ -83,7 +93,7 @@ Dependencies are locked in `uv.lock` and synchronized when the development shell
 
 ```bash
 nix develop
-python -m py_compile tts_api.py tts_engines.py
+python -m compileall -q src/mini_tts
 ```
 
 Rebuild the local Tailwind stylesheet after changing classes:
@@ -95,3 +105,11 @@ tailwindcss \
   -o static/tailwind.css \
   --minify
 ```
+
+Engine code lives in `src/mini_tts/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches separate instances per engine, model, and device, with a lock per instance. Optional processing is separate in `processing.py`. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
+
+### Kokoro GPU measurement
+
+On an RTX 3090 with ONNX Runtime 1.26, five warm inference runs gave median latencies of 94 ms for 3.125 seconds of speech and 295 ms for 10.725 seconds. CPU medians on the Ryzen 7 2700 (four ONNX threads) were 1,513 ms and 5,214 ms. These exclude model loading, text processing, WAV encoding, and optional processing. An HTTP smoke request including text processing and WAV encoding took 101 ms warm.
+
+CUDA profiling recorded 1,895 GPU nodes and 182 CPU nodes. Some operations, including STFT and indexing, still use CPU. Heuristic convolution selection performed as well as exhaustive selection without extra tuning work. The upstream FP16 candidate produced non-finite audio and was not selected.

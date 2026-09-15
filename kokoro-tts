@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 exec "$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/kokoro_tts.py" "$@"

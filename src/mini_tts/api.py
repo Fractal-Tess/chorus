@@ -5,8 +5,6 @@ import threading
 import uuid
 from collections import OrderedDict
 from dataclasses import asdict
-from pathlib import Path
-from typing import Literal
 
 import torch
 from fastapi import FastAPI, HTTPException, Response
@@ -14,22 +12,29 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from tts_engines import ENGINE_INFO, EngineRegistry
+from mini_tts.engines import ENGINE_INFO
+from mini_tts.models import ROOT
+from mini_tts.registry import EngineRegistry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mini-tts")
 
-EngineName = Literal["pocket", "kokoro", "piper", "kitten", "supertonic"]
-
 
 class SpeechRequest(BaseModel):
-    engine: EngineName
+    engine: str
+    model: str | None = None
+    device: str | None = None
     input: str = Field(min_length=1, max_length=10_000)
     voice: str | None = None
     language: str | None = None
     speed: float = Field(default=1.0, ge=0.5, le=2.0)
-    lava_sr: bool = Field(default=False, description="Post-process generated speech with LavaSR and return 48 kHz audio")
-    force_align: bool = Field(default=False, description="Generate English word timestamps with Wav2Vec2")
+    lava_sr: bool = Field(
+        default=False,
+        description="Post-process generated speech with LavaSR and return 48 kHz audio",
+    )
+    force_align: bool = Field(
+        default=False, description="Generate English word timestamps with Wav2Vec2"
+    )
 
 
 registry = EngineRegistry()
@@ -51,10 +56,10 @@ def store_alignment(payload: dict[str, object]) -> None:
 app = FastAPI(
     title="Mini TTS API",
     version="1.0.0",
-    description="Local CPU-only API for Pocket, Kokoro, Piper, Kitten, and Supertonic 3.",
+    description="Local multi-engine TTS with CPU/CUDA synthesis and optional post-processing.",
 )
 
-static_dir = Path(__file__).resolve().parent / "static"
+static_dir = ROOT / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
@@ -67,9 +72,11 @@ def landing_page() -> FileResponse:
 def health() -> dict[str, object]:
     return {
         "status": "ok",
-        "device": "cpu",
+        "device": registry.policy.default,
+        "allowed_devices": registry.policy.allowed,
+        "loaded_models": registry.loaded_models(),
         "torch": torch.__version__,
-        "cuda_available": torch.cuda.is_available(),
+        "cuda_available": any(d.startswith("cuda:") for d in registry.policy.allowed),
         "loaded_engines": registry.loaded_engines(),
     }
 
@@ -79,30 +86,74 @@ def engines() -> dict[str, object]:
     loaded = set(registry.loaded_engines())
     return {
         "engines": [
-            {"id": name, "loaded": name in loaded, **details}
+            {
+                "id": name,
+                "loaded": name in loaded,
+                **details,
+                "models": [
+                    spec.name
+                    for spec in registry.catalog.models.values()
+                    if spec.engine == name
+                ],
+            }
             for name, details in ENGINE_INFO.items()
+            if name in registry.enabled
         ]
     }
+
+
+@app.get("/v1/models")
+def models() -> dict[str, object]:
+    return {
+        "models": [
+            {
+                "engine": spec.engine,
+                "model": spec.name,
+                "supported_devices": spec.devices,
+                "allowed_devices": [
+                    d
+                    for d in registry.policy.allowed
+                    if d.split(":")[0] in spec.devices
+                ],
+                "default": spec.manifest.get("default", False),
+            }
+            for spec in registry.catalog.models.values()
+            if spec.engine in registry.enabled
+        ],
+        "loaded": registry.loaded_models(),
+    }
+
 
 @app.get("/v1/audio/alignments/{alignment_id}")
 def get_alignment(alignment_id: str) -> dict[str, object]:
     with alignment_cache_lock:
         alignment = alignment_cache.get(alignment_id)
         if alignment is None:
-            raise HTTPException(status_code=404, detail="Alignment not found or expired")
+            raise HTTPException(
+                status_code=404, detail="Alignment not found or expired"
+            )
         alignment_cache.move_to_end(alignment_id)
         return alignment
 
 
 @app.post("/v1/audio/speech")
 def create_speech(request: SpeechRequest) -> Response:
-    if request.force_align and request.language is not None and request.language.lower() not in ENGLISH_ALIGNMENT_LANGUAGES:
-        raise HTTPException(status_code=400, detail="Wav2Vec2 force alignment currently supports English speech only")
+    if (
+        request.force_align
+        and request.language is not None
+        and request.language.lower() not in ENGLISH_ALIGNMENT_LANGUAGES
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Wav2Vec2 force alignment currently supports English speech only",
+        )
 
     try:
         audio = registry.synthesize(
             engine=request.engine,
             text=request.input,
+            model=request.model,
+            device=request.device,
             voice=request.voice,
             language=request.language,
             speed=request.speed,
@@ -113,12 +164,16 @@ def create_speech(request: SpeechRequest) -> Response:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
         logger.exception("Synthesis failed for %s", request.engine)
-        raise HTTPException(status_code=500, detail=f"{request.engine} synthesis failed: {error}") from error
+        raise HTTPException(
+            status_code=500, detail=f"{request.engine} synthesis failed: {error}"
+        ) from error
 
     timings = audio.timings_ms
     headers = {
         "Content-Disposition": f'attachment; filename="{request.engine}.wav"',
         "X-TTS-Engine": request.engine,
+        "X-TTS-Model": audio.model,
+        "X-TTS-Device": audio.device,
         "X-Sample-Rate": str(audio.sample_rate),
         "X-Audio-Duration": f"{audio.duration:.3f}",
         "X-LavaSR-Applied": str(request.lava_sr).lower(),

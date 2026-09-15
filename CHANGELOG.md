@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Split the shared API into engine adapters, a versioned model catalog, per-model/device instance caching, and separate post-processing.
+- Added Kokoro CUDA inference, explicit device policy, device discovery, model selection, and startup warmup. RTX 3090 warm ONNX inference measured 94 ms for 3.125 seconds of speech versus 1,513 ms on CPU.
+- Added checksum-pinned Kokoro weights and 54 voices in Git LFS, with explicit model fetching and missing-LFS-pointer diagnostics.
+- Preserved optional CPU LavaSR enhancement followed by English forced alignment, including resolved model/device and phase timing headers.
+- Fixed forced alignment of hyphenated words and kept plain synthesis independent of queued post-processing.
 - Added `serve-api` to the Nix development shell as a direct command for starting the local server.
 - Enabled Pocket TTS dynamic INT8 quantization, reducing representative warm synthesis latency by about 20% and lowering model memory use.
 

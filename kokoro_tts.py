@@ -2,9 +2,7 @@
 import argparse
 from pathlib import Path
 
-import numpy as np
-import soundfile as sf
-from kokoro import KPipeline
+from mini_tts.registry import EngineRegistry
 
 
 def parse_args() -> argparse.Namespace:
@@ -14,20 +12,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--voice", default="af_heart", help="Kokoro voice name")
     parser.add_argument("--language", default="a", help="Kokoro language code")
     parser.add_argument("--speed", type=float, default=1.0)
+    parser.add_argument("--device", default="auto", help="auto, cpu, or cuda:N")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    pipeline = KPipeline(lang_code=args.language)
-    chunks = [audio for _, _, audio in pipeline(args.text, voice=args.voice, speed=args.speed)]
-    if not chunks:
-        raise RuntimeError("Kokoro produced no audio")
+    audio = EngineRegistry().synthesize(
+        "kokoro",
+        args.text,
+        voice=args.voice,
+        language=args.language,
+        speed=args.speed,
+        device=args.device,
+    )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    audio = np.concatenate(chunks)
-    sf.write(args.output, audio, 24_000)
-    print(f"Wrote {args.output} ({len(audio) / 24_000:.2f}s)")
+    args.output.write_bytes(audio.wav)
+    print(f"Wrote {args.output} ({audio.duration:.2f}s, {audio.device})")
 
 
 if __name__ == "__main__":

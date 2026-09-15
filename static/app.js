@@ -396,7 +396,7 @@ async function checkHealth() {
     if (!response.ok) throw new Error();
     const health = await response.json();
     elements.healthDot.className = 'size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129_/_0.12)]';
-    elements.healthLabel.textContent = health.device === 'cpu' ? 'CPU online' : `${health.device} online`;
+    elements.healthLabel.textContent = `${(health.allowed_devices || [health.device]).join(', ')} online`;
   } catch {
     elements.healthDot.className = 'size-2 rounded-full bg-red-500';
     elements.healthLabel.textContent = 'API offline';
