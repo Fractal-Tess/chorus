@@ -11,7 +11,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--voice", default="af_heart", help="Kokoro voice name")
     parser.add_argument("--language", default="a", help="Kokoro language code")
     parser.add_argument("--speed", type=float, default=1.0)
-    parser.add_argument("--device", default="auto", help="auto, cpu, or cuda:N")
+    parser.add_argument("--channel", choices=("cpu", "gpu"))
     return parser.parse_args()
 
 
@@ -25,7 +25,7 @@ def main() -> None:
             voice=args.voice,
             language=args.language,
             speed=args.speed,
-            device=args.device,
+            channel=args.channel,
         )
     finally:
         registry.close()

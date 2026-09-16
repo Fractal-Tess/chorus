@@ -8,12 +8,14 @@ import uuid
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from enum import Enum
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from chorus.channels import ChannelUnavailableError, GpuQueueFullError
 from chorus.devices import available_devices
 from chorus.engines import ENGINE_INFO
 from chorus.models import ROOT
@@ -24,25 +26,27 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chorus")
 
 
+class ExecutionChannel(str, Enum):
+    cpu = "cpu"
+    gpu = "gpu"
+
+
 class DeviceInfo(BaseModel):
-    id: str = Field(
-        description="Device ID accepted by speech requests, e.g. cpu or cuda:0."
-    )
-    type: str = Field(description="Execution device type: cpu or cuda.")
+    id: str = Field(description="Physical device identifier for diagnostics only.")
+    type: str = Field(description="Physical device type: cpu or cuda.")
     enabled: bool = Field(description="Whether server policy permits this device.")
 
 
 class DevicesResponse(BaseModel):
-    default_device: str = Field(
-        description="Configured default: auto prefers an enabled GPU supported by the model, otherwise CPU."
-    )
     devices: list[DeviceInfo]
 
 
 class SpeechRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     engine: str
     model: str | None = None
-    device: str | None = None
+    channel: ExecutionChannel | None = None
     response_format: ResponseFormat = Field(
         default="wav",
         description="Output format: WAV PCM, MP3 (128 kbps), lossless FLAC, or Ogg Opus (64 kbps, 48 kHz).",
@@ -106,11 +110,35 @@ def landing_page() -> FileResponse:
     return FileResponse(static_dir / "index.html")
 
 
+def _health_channels() -> list[dict[str, object]]:
+    """Summarize logical channel capabilities without exposing physical IDs."""
+    statuses = {
+        channel: {
+            "id": channel,
+            "supported": False,
+            "enabled": False,
+            "available": False,
+        }
+        for channel in ("cpu", "gpu")
+    }
+    for spec in registry.catalog.models.values():
+        if spec.engine not in registry.enabled:
+            continue
+        status = registry.channel_status(spec)
+        for channel_status in status["channels"]:
+            channel = channel_status["id"]
+            current = statuses[channel]
+            current["supported"] |= bool(channel_status["supported"])
+            current["enabled"] |= bool(channel_status["enabled"])
+            current["available"] |= bool(channel_status["available"])
+    return list(statuses.values())
+
+
 @app.get("/health")
 def health() -> dict[str, object]:
     return {
         "status": "ok",
-        "device": registry.policy.default,
+        "channels": _health_channels(),
         "allowed_devices": registry.policy.allowed,
         "loaded_models": registry.loaded_models(),
         "torch": importlib.metadata.version("torch"),
@@ -121,20 +149,20 @@ def health() -> dict[str, object]:
 
 @app.get("/v1/devices", response_model=DevicesResponse)
 def devices() -> dict[str, object]:
-    """List detected devices, including those disabled by server policy.
+    """List detected physical devices for diagnostics.
 
     Detection respects CUDA_VISIBLE_DEVICES and is cached for this process.
-    Use /v1/models to check which enabled devices a model supports.
+    Logical CPU/GPU routing policy is reported by /v1/models.
     """
+    detected = available_devices()
     return {
-        "default_device": registry.policy.default,
         "devices": [
             {
                 "id": device,
                 "type": device.split(":")[0],
                 "enabled": device in registry.policy.allowed,
             }
-            for device in available_devices()
+            for device in detected
         ],
     }
 
@@ -179,12 +207,7 @@ def models() -> dict[str, object]:
             {
                 "engine": spec.engine,
                 "model": spec.name,
-                "supported_devices": spec.devices,
-                "allowed_devices": [
-                    d
-                    for d in registry.policy.allowed
-                    if d.split(":")[0] in spec.devices
-                ],
+                **registry.channel_status(spec),
                 "default": spec.manifest.get("default", False),
             }
             for spec in registry.catalog.models.values()
@@ -210,13 +233,26 @@ def get_alignment(alignment_id: str) -> dict[str, object]:
     "/v1/audio/speech",
     response_class=Response,
     responses={
+        400: {"description": "Invalid request or unsupported/disabled model channel."},
+        429: {
+            "description": "The GPU waiting queue is full. No inference was started.",
+            "headers": {
+                "Retry-After": {
+                    "description": "Suggested delay in seconds before retrying.",
+                    "schema": {"type": "integer"},
+                }
+            },
+        },
+        503: {
+            "description": "The selected channel has no enabled compatible hardware."
+        },
         200: {
             "description": "Audio in the requested response_format (WAV by default).",
             "content": {
                 media_type: {"schema": {"type": "string", "format": "binary"}}
                 for media_type in AUDIO_MEDIA_TYPES.values()
             },
-        }
+        },
     },
 )
 def create_speech(request: SpeechRequest) -> Response:
@@ -236,7 +272,7 @@ def create_speech(request: SpeechRequest) -> Response:
             engine=request.engine,
             text=request.input,
             model=request.model,
-            device=request.device,
+            channel=request.channel.value if request.channel is not None else None,
             voice=request.voice,
             language=request.language,
             speed=request.speed,
@@ -246,6 +282,14 @@ def create_speech(request: SpeechRequest) -> Response:
         encoding_started = time.perf_counter()
         content, sample_rate = encode_response(audio, request.response_format)
         encoding_ms = (time.perf_counter() - encoding_started) * 1_000
+    except GpuQueueFullError as error:
+        raise HTTPException(
+            status_code=429,
+            detail=str(error),
+            headers={"Retry-After": "1"},
+        ) from error
+    except ChannelUnavailableError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
@@ -267,6 +311,11 @@ def create_speech(request: SpeechRequest) -> Response:
         "X-Sample-Rate": str(sample_rate),
         "X-Audio-Duration": f"{audio.duration:.3f}",
         "X-LavaSR-Applied": str(request.lava_sr).lower(),
+        "X-TTS-Channel": (
+            request.channel.value
+            if request.channel is not None
+            else ("gpu" if audio.device.startswith("cuda:") else "cpu")
+        ),
         "X-Force-Alignment-Applied": str(request.force_align).lower(),
         "X-Queue-Time-Ms": f"{timings['queue']:.1f}",
         "X-Inference-Time-Ms": f"{timings['inference']:.1f}",

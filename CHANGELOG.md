@@ -2,12 +2,14 @@
 
 ## Unreleased
 
+- Replaced speech device selection with CPU/GPU channels, strict per-model `channels.toml` policies, a console channel selector, and read-only policy/physical diagnostics. Added a CPU/GPU engine support table. Requests now use `channel` instead of `device`; defaults are per model rather than `--default-device`.
+- Added a bounded FIFO GPU queue with 32 waiting slots by default, configurable through `--gpu-queue-size`. Requests choose a physical GPU only when a slot opens; Kokoro shares two execution slots per GPU while other GPU engines run exclusively. Overflow returns HTTP 429 with `Retry-After`, and resource diagnostics expose queue occupancy.
 - Increased Kokoro CUDA throughput by overlapping two requests in each shared ONNX session and using private, framed binary worker connections. Dual-RTX-3090 warm MP3 throughput increased from 6.7 to 9.9 requests/s without duplicating model weights; CPU and other engine workers remain serialized.
-- Changed automatic device selection to balance active and queued requests across compatible enabled GPUs, preferring warm models on ties. Explicit device requests remain pinned.
+- Added automatic physical GPU selection that balances load and prefers warm models on ties.
 - Added `response_format` to speech requests for WAV (default), MP3, lossless FLAC, and Ogg Opus, with FFmpeg encoding, matching media types/download extensions, OpenAPI documentation, and encoding timing.
 - Added lazy isolated model workers with warm reuse, a configurable five-minute idle timeout, and least-recently-used eviction against optional aggregate RAM and per-GPU VRAM cache budgets.
 - Added `GET /v1/resources` and memory-budget CLI flags. Worker eviction releases optional processors and nested runtimes; device discovery no longer retains CUDA contexts in the API process.
-- Added `GET /v1/devices` with detected CPU/CUDA device IDs, enabled status, and the default device policy, including a response schema in the interactive API docs.
+- Added `GET /v1/devices` with detected physical CPU/CUDA device IDs and enabled status, including a response schema in the interactive API docs.
 - Consolidated shell launchers in `bin/`, standalone Python commands in `src/chorus/commands/`, and Tailwind configuration in `static/`; launcher names remain unchanged in the development shell.
 - Isolated the development flake and lock in `nix/`, with a direnv `path:` reference that keeps model weights out of Nix source snapshots.
 - Added local Fish Audio S2-Pro CUDA synthesis with pinned source, checksum-verified Git LFS weights, and a separate locked runtime.

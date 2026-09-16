@@ -34,13 +34,37 @@ Kokoro weights and all 54 voice tensors live in `models/kokoro/82m-v1.0/`, track
 
 For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selected engines' weights, then use the scoped `git lfs pull` commands. LFS keeps every committed weight version; remote storage and download quotas still apply.
 
-`--devices` restricts execution to listed devices. `--default-device auto` selects the compatible enabled GPU with the fewest active and queued requests, preferring an already-warm model on ties. Without a compatible GPU it selects CPU, if enabled. Explicit unavailable or unsupported devices are errors; Kokoro refuses whole-session CPU fallback. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` loads and warms the model before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
+`--devices` sets the physical hardware pool; speech requests choose a CPU or GPU channel rather than a GPU number. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` warms the model on its configured default channel before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
 
 CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The environment includes CUDA 12 and cuDNN runtime libraries; an NVIDIA driver is still required. On NixOS, the launcher includes `/run/opengl-driver/lib`. PyTorch and the optional processors remain CPU-based.
 
+### Execution channels
+
+[channels.toml](channels.toml) controls which channels each model may use and its default:
+
+```toml
+[models."kokoro/82m-v1.0"]
+channels = ["cpu", "gpu"]
+default_channel = "gpu"
+```
+
+Use `["cpu"]` with `default_channel = "cpu"` for CPU-only Kokoro, or `["gpu"]` for GPU-only. Breeze and Fish are GPU-only in the supplied configuration and cannot enable unsupported CPU execution. Enabling both channels does not preload extra model copies.
+
+Set `--channel-config PATH` or `TTS_CHANNEL_CONFIG` to use another file. The explicit CLI path takes precedence. Policy is loaded at startup; restart after editing. Unknown models, unsupported channels, misspelled keys, and invalid defaults are errors. Custom catalogs need a matching policy file. Models without an entry allow their supported channels and prefer an available GPU, then CPU.
+
+Omitting `channel` uses the model's default. An explicit or configured GPU request never silently falls back to CPU, including when GPUs are busy or unavailable. Disabled or unsupported channels return HTTP 400; unavailable hardware returns 503. The console shows channel availability and the configured default. Physical GPU IDs remain under **Physical diagnostics**.
+
+### GPU queue
+
+`--gpu-queue-size 32` sets the maximum number of **waiting** GPU requests, separate from active inference slots. Choose `5`, `10`, or another nonnegative count; `0` rejects requests whenever all compatible execution slots are occupied.
+
+The shared FIFO queue assigns a physical GPU only when a slot opens, avoiding requests stranded behind a busy GPU while another is free. Dispatch prefers the least-busy GPU, then an already-warm model. Kokoro overlaps two runs per GPU in one ONNX session; other GPU engines run exclusively on their selected GPU. No microbatching or extra model replicas are used. A full queue returns HTTP 429 with `Retry-After: 1`; clients control whether to retry.
+
+On two RTX 3090s, warm Bella MP3 trials completed 510 requests without errors. Eight concurrent clients measured 9.68 requests/s and 800 ms median latency; 32 measured 9.91 requests/s and 3.17 s. More waiting slots absorb bursts, but do not remove CPU-side STFT work or increase GPU compute capacity. Start with 4–8 concurrent clients and leave queue capacity at 32.
+
 ### Memory and idle unloading
 
-Startup loads no models unless `--preload` is supplied. Each model/device pair runs in its own worker process, retaining weights and optional post-processing models between requests. `--idle-timeout` sets the idle lifetime in seconds (default `300`; `0` unloads after every request). Eviction exits the worker and its nested runtimes, releasing their RAM and GPU allocations. The API process remains running with a small RAM footprint.
+Startup loads no models unless `--preload` is supplied. Each model/device pair runs in its own worker process, retaining weights and optional post-processing models between requests. `--idle-timeout` sets the idle lifetime in seconds (default `300`; `0` unloads once pending work drains). Eviction exits the worker and its nested runtimes, releasing their RAM and GPU allocations. The API process remains running with a small RAM footprint.
 
 Set an aggregate worker RAM budget and separate VRAM budgets for enabled GPUs:
 
@@ -52,21 +76,23 @@ serve-api --devices cpu,cuda:0,cuda:1 \
   --vram-budget-mib cuda:1=4096
 ```
 
-Budgets are optional, soft cache targets, not hard allocation limits. Loading and active requests may exceed them. Least-recently-used idle workers are evicted under pressure; active or queued requests are never evicted. A model larger than its budget can serve a request but is unloaded afterward. RAM accounting sums worker-tree RSS (shared pages may be counted more than once); budgets exclude the API process and unrelated applications. VRAM budgets require working `nvidia-smi` telemetry and respect CUDA's logical device ordering.
+Budgets are optional, soft cache targets, not hard allocation limits. Loading and active requests may exceed them. Least-recently-used idle workers are evicted under pressure; workers serving or already reserved for requests are protected. GPU queue entries are not bound to workers until dispatch. A model larger than its budget can serve a request but is unloaded afterward. RAM accounting sums worker-tree RSS (shared pages may be counted more than once); budgets exclude the API process and unrelated applications. VRAM budgets require working `nvidia-smi` telemetry and respect CUDA's logical device ordering.
 
-`GET /v1/resources` reports budgets, worker RAM/VRAM usage, active requests, and idle age. With no workers loaded, model usage is zero and background cache monitoring sleeps. First requests after eviction pay the cold-load cost again.
+`GET /v1/resources` reports budgets, worker RAM/VRAM usage, active requests, idle age, and `gpu_queue` counts (`capacity`, `waiting`, `running`). With no workers loaded, model usage is zero and background cache monitoring sleeps. First requests after eviction pay the cold-load cost again.
 
 ## Engines
 
-| Engine | Default voice | Sample rate | Notes |
-| --- | --- | ---: | --- |
-| Pocket TTS | `alba` | 24 kHz | INT8-optimized voice cloning and multilingual models |
-| Kokoro | `af_heart` | 24 kHz | 54 voices; FP32 ONNX on CPU or CUDA |
-| Piper | `en_US-lessac-medium` | 22.05 kHz | Small, dependable English model |
-| Kitten TTS | `Leo` | 24 kHz | Eight lightweight English voices |
-| Supertonic 3 | `M1` | 44.1 kHz | Ten voices and multilingual synthesis |
-| Breeze TTS 2 | Voice description | 24 kHz | English/Chinese; CUDA; research/non-commercial license |
-| Fish Audio S2-Pro | Optional speaking style | 44.1 kHz | Multilingual; CUDA; research/non-commercial license |
+| Engine | CPU channel | GPU channel | Default voice | Sample rate | Notes |
+| --- | :---: | :---: | --- | ---: | --- |
+| Pocket TTS | Yes | No | `alba` | 24 kHz | INT8-optimized voice cloning and multilingual models |
+| Kokoro | Yes | Yes | `af_heart` | 24 kHz | 54 voices; FP32 ONNX |
+| Piper | Yes | No | `en_US-lessac-medium` | 22.05 kHz | Small, dependable English model |
+| Kitten TTS | Yes | No | `Leo` | 24 kHz | Eight lightweight English voices |
+| Supertonic 3 | Yes | No | `M1` | 44.1 kHz | Ten voices and multilingual synthesis |
+| Breeze TTS 2 | No | Yes | Voice description | 24 kHz | English/Chinese; research/non-commercial license |
+| Fish Audio S2-Pro | No | Yes | Optional speaking style | 44.1 kHz | Multilingual; research/non-commercial license |
+
+Channel support reflects the adapters shipped with Chorus, not every capability of the upstream projects. Per-model policy can disable a supported channel; it cannot enable an unsupported one. GPU inference still uses CPU work, and optional LavaSR and alignment run on CPU.
 
 For English narration, start with Kokoro `af_heart`. The console also marks expressive, audiobook, documentary, and British narration alternatives.
 
@@ -80,6 +106,7 @@ curl --fail-with-body \
   -H 'Content-Type: application/json' \
   -d '{
     "engine": "kokoro",
+    "channel": "gpu",
     "response_format": "wav",
     "input": "The room fell quiet as the first page turned.",
     "voice": "af_heart",
@@ -93,7 +120,7 @@ curl --fail-with-body \
 
 Only `engine` and `input` are required. Set `lava_sr` to `true` to post-process the generated speech at 48 kHz. Set `force_align` to `true` for English word timestamps. Engine-specific defaults are listed by `GET /v1/engines`.
 
-Optional `model` and `device` fields select a model version and device, for example `"model": "82m-v1.0", "device": "cuda:0"`. Responses report the resolved choice in `X-TTS-Model` and `X-TTS-Device`. Enhancement runs before alignment so word timestamps match the returned audio.
+Optional `model` and `channel` fields select a model version and execution channel, for example `"model": "82m-v1.0", "channel": "gpu"`. Responses report `X-TTS-Model` and `X-TTS-Channel`; `X-TTS-Device` identifies the physical device for diagnostics. The old request `device` field and `auto` channel are not accepted. Enhancement runs before alignment so word timestamps match the returned audio.
 
 Set `response_format` to choose the output. WAV is the default and needs no encoder process; the other formats use the bundled FFmpeg after enhancement and alignment.
 
@@ -111,15 +138,15 @@ For example, send `"response_format": "mp3"` and save the response as `speech.mp
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Runtime and loaded-engine status |
-| `GET` | `/v1/devices` | Detected CPU/CUDA devices, enabled status, and default device policy |
-| `GET` | `/v1/resources` | Worker RAM/VRAM usage, soft cache budgets, and idle state |
+| `GET` | `/v1/devices` | Detected physical CPU/CUDA devices and enabled status for diagnostics |
+| `GET` | `/v1/resources` | Worker RAM/VRAM usage, GPU queue occupancy, soft cache budgets, and idle state |
 | `GET` | `/v1/engines` | Engines, voices, languages, and defaults |
-| `GET` | `/v1/models` | Model versions, supported/allowed devices, loaded instances |
+| `GET` | `/v1/models` | Model versions, channel support/policy/availability, defaults, and loaded instances |
 | `POST` | `/v1/audio/speech` | Generate WAV, MP3, FLAC, or Ogg Opus audio |
 | `GET` | `/v1/audio/alignments/{id}` | Retrieve a generated word-alignment sidecar |
 | `GET` | `/docs` | OpenAPI console |
 
-`GET /v1/devices` returns `default_device` and a `devices` list with `id`, `type`, and `enabled` fields. Detected GPUs can be disabled by `--devices`; only enabled devices may be selected in speech requests. Detection respects `CUDA_VISIBLE_DEVICES` and is cached for the server process. Check `/v1/models` for model compatibility. The `auto` default prefers an enabled GPU supported by the selected model, otherwise CPU.
+`GET /v1/models` reports each model's `default_channel` and a `channels` list with `id`, `supported`, `enabled`, and `available` fields. `GET /v1/devices` returns physical `devices` with `id`, `type`, and `enabled` fields. Physical detection respects `CUDA_VISIBLE_DEVICES` and is cached for the server process; `--devices` restricts which detected devices the scheduler may use. There is no server-wide `default_device`; defaults are per model.
 
 The speech endpoint accepts text up to 10,000 characters and a speed from `0.5` to `2.0`. Pocket TTS, Breeze, and Fish use a fixed speed of `1.0`. LavaSR and force alignment are disabled unless the request explicitly enables them.
 
@@ -134,6 +161,12 @@ Dependencies are locked in `uv.lock` and synchronized when the development shell
 ```bash
 nix develop path:./nix
 python -m compileall -q src/chorus
+```
+
+Run the GPU queue regression checks without loading models or requiring CUDA:
+
+```bash
+python -m unittest discover -s tests -v
 ```
 
 Rebuild the local Tailwind stylesheet after changing classes:
@@ -163,7 +196,7 @@ Across two RTX 3090s, overlapping requests and automatic GPU routing increased w
 | 4 | 6.64 | 9.15 | 422 ms |
 | 8 | 6.70 | 9.82 | 797 ms |
 
-The new 15-second trials completed 677 requests across six load settings with no errors. Twelve concurrent requests reached 9.91 requests/s but raised median latency to 1.18 seconds. Use four concurrent requests for lower latency or eight for throughput, with `device: "auto"`. The FP32 graph and weights are unchanged. CPU STFT remains a bottleneck; the gain comes from overlapping independent requests, not making a single request 48% faster.
+The 15-second trials completed 677 requests across six load settings with no errors. Twelve concurrent requests reached 9.91 requests/s but raised median latency to 1.18 seconds. Use four concurrent requests for lower latency or eight for throughput, with `channel: "gpu"`. The FP32 graph and weights are unchanged. CPU STFT remains a bottleneck; the gain comes from overlapping independent requests, not making a single request 48% faster.
 
 ### Breeze setup
 
@@ -177,7 +210,7 @@ git lfs pull --include="models/breeze/**"
 serve-api --engines kokoro,breeze --devices cpu,cuda:0
 ```
 
-Call `/v1/audio/speech` with `"engine": "breeze", "model": "tts-2", "device": "cuda:0"`. For this engine, `voice` is an optional natural-language description, such as `"A calm, warm English narrator with clear diction."`; the browser exposes a text field instead of a voice list. Select `language` as `en` or `zh`. Language is inferred from the text, not translated. Speed must remain `1.0`. The existing `lava_sr` and English `force_align` options work on Breeze output.
+Call `/v1/audio/speech` with `"engine": "breeze", "model": "tts-2", "channel": "gpu"`. For this engine, `voice` is an optional natural-language description, such as `"A calm, warm English narrator with clear diction."`; the browser exposes a text field instead of a voice list. Select `language` as `en` or `zh`. Language is inferred from the text, not translated. Speed must remain `1.0`. The existing `lava_sr` and English `force_align` options work on Breeze output.
 
 Breeze loads its local checkpoint and audio tokenizer with Hugging Face offline mode enabled. The model bundle is about 7.7 GB. On the RTX 3090, the eager worker used about 8.2 GiB of GPU memory; one warm request generated 2.64 seconds of audio in 9.4 seconds. Cold startup plus that request took 55 seconds. Flash-attention and fast CUDA-graph paths are not enabled. The upstream runtime's context and generation limits still apply; use short passages rather than book-length requests.
 
@@ -197,12 +230,12 @@ git lfs pull --include="models/fish/**"
 serve-api --engines fish --devices cuda:0
 ```
 
-Use `"engine": "fish", "model": "s2-pro", "device": "cuda:0"` with the shared speech endpoint. Put natural-language cues in `input`, for example `"[whisper] Close the door quietly."`. The optional `voice` field adds a leading style cue such as `"warm narration"`; it is not a named voice, reference-audio path, or voice clone. The browser labels this field **Style**.
+Use `"engine": "fish", "model": "s2-pro", "channel": "gpu"` with the shared speech endpoint. Put natural-language cues in `input`, for example `"[whisper] Close the door quietly."`. The optional `voice` field adds a leading style cue such as `"warm narration"`; it is not a named voice, reference-audio path, or voice clone. The browser labels this field **Style**.
 
 Language is inferred from the text, not translated. The language list follows the upstream model card; English and Chinese generation were verified locally. Set `language` to `en` for English alignment. Fish's bracket cues and speaker markers are excluded from word timestamps. LavaSR still runs before alignment and returns 48 kHz audio.
 
 Inference is local-only, eager BF16, with the full 32,768-token model context. The worker loads checkpoint parameters without allocating a throwaway FP32 CPU model. On an RTX 3090, two warm requests took a median 22.25 seconds for 3.48 seconds of audio; cold startup plus synthesis took 56.44 seconds. This configuration is not real-time, and compilation is not enabled.
 
-The warm Fish worker occupied about 19 GiB of GPU memory. Fish and Breeze do not fit together on one 24 GB GPU; use a Fish-only server or select separate GPUs through the API's `device` field.
+The warm Fish worker occupied about 19 GiB of GPU memory. Fish and Breeze do not fit together on one 24 GB GPU. Use a Fish-only server or separate servers with disjoint `--devices` pools when isolating them. The GPU queue limits concurrent execution, but does not guarantee that multiple resident models fit in VRAM.
 
 The bundle is about 11 GB, plus another copy in the local Git LFS object store. **Built with Fish Audio.** The [Fish Audio Research License](models/fish/s2-pro/LICENSE.md) covers both upstream code and weights. Research and non-commercial use are permitted; commercial use requires a separate written agreement. The license and required `NOTICE` are retained with the model.

@@ -1,0 +1,11 @@
+[models."kokoro/82m-v1.0"]
+channels = ["cpu", "gpu"]
+default_channel = "gpu"
+
+[models."breeze/tts-2"]
+channels = ["gpu"]
+default_channel = "gpu"
+
+[models."fish/s2-pro"]
+channels = ["gpu"]
+default_channel = "gpu"

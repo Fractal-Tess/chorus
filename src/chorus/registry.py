@@ -4,12 +4,15 @@ import logging
 import math
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 
+from chorus.channels import ChannelPolicy, GpuQueueFullError
 from chorus.devices import DevicePolicy
 from chorus.engines import ENGINE_INFO
 from chorus.model_worker import ModelWorker, worker_concurrency
-from chorus.models import ModelCatalog
+from chorus.models import ModelCatalog, ModelSpec
 from chorus.resources import (
     gpu_usage,
     process_tree_pids,
@@ -39,12 +42,19 @@ class EngineRegistry:
         policy: DevicePolicy | None = None,
         enabled: list[str] | None = None,
         *,
+        channel_config: Path | None = None,
+        gpu_queue_size: int = 32,
         idle_timeout: float = 300,
         ram_budget_bytes: int | None = None,
         vram_budget_bytes: dict[str, int] | None = None,
     ):
         self.catalog = catalog or ModelCatalog()
         self.policy = policy or DevicePolicy()
+        self.channels = ChannelPolicy(self.catalog, self.policy, channel_config)
+        if type(gpu_queue_size) is not int or gpu_queue_size < 0:
+            raise ValueError("GPU queue size must be a nonnegative integer")
+        self.gpu_queue_size = gpu_queue_size
+        self._gpu_waiters: deque[tuple[str, str, object]] = deque()
         self.enabled = list(ENGINE_INFO) if enabled is None else enabled
         if not self.enabled or any(name not in ENGINE_INFO for name in self.enabled):
             raise ValueError("Unknown or empty engine selection")
@@ -105,11 +115,20 @@ class EngineRegistry:
         entry.worker.close()
         del self._instances[key]
 
+    def _gpu_model_waiting(self, key: tuple[str, str, str]) -> bool:
+        return key[2].startswith("cuda:") and any(
+            waiter[0] == key[0] and waiter[1] == key[1] for waiter in self._gpu_waiters
+        )
+
     def _maintain(self) -> None:
         now = time.monotonic()
         for key, entry in list(self._instances.items()):
             if not entry.users and (
-                entry.worker.pid is None or now - entry.last_used >= self.idle_timeout
+                entry.worker.pid is None
+                or (
+                    now - entry.last_used >= self.idle_timeout
+                    and not self._gpu_model_waiting(key)
+                )
             ):
                 self._evict(key)
         if not self._instances or not (self.ram_budget_bytes or self.vram_budget_bytes):
@@ -148,7 +167,11 @@ class EngineRegistry:
                 if not self._instances:
                     self._condition.wait()
                     continue
-                idle = [entry for entry in self._instances.values() if not entry.users]
+                idle = [
+                    entry
+                    for key, entry in self._instances.items()
+                    if not entry.users and not self._gpu_model_waiting(key)
+                ]
                 delay = min(
                     (
                         max(
@@ -192,6 +215,15 @@ class EngineRegistry:
                 if gpu_error is None
                 else None,
                 "gpu_monitoring_error": gpu_error,
+                "gpu_queue": {
+                    "capacity": self.gpu_queue_size,
+                    "waiting": len(self._gpu_waiters),
+                    "running": sum(
+                        entry.users
+                        for key, entry in self._instances.items()
+                        if key[2].startswith("cuda:")
+                    ),
+                },
                 "models": [
                     {
                         "engine": key[0],
@@ -223,32 +255,55 @@ class EngineRegistry:
         if self._reaper is not None:
             self._reaper.join()
 
-    def _select_device(self, spec, requested: str | None = None) -> str:
-        requested = requested or self.policy.default
-        if requested != "auto":
-            return self.policy.resolve(spec.devices, requested)
+    def channel_status(self, spec: ModelSpec) -> dict[str, object]:
+        return self.channels.status(spec)
 
-        gpu_devices = [
-            device
-            for device in self.policy.allowed
-            if device.startswith("cuda:") and "cuda" in spec.devices
-        ]
-        if not gpu_devices:
-            return self.policy.resolve(spec.devices, "auto")
-
-        def rank(device: str) -> tuple[int, int]:
-            outstanding = sum(
-                entry.users
+    def _available_gpu(self, spec: ModelSpec, devices: list[str]) -> str | None:
+        candidates = []
+        for device in devices:
+            active = [
+                (key, entry)
                 for key, entry in self._instances.items()
-                if key[2] == device
-            )
+                if key[2] == device and entry.users
+            ]
+            running = sum(entry.users for _, entry in active)
+            limit = worker_concurrency(spec.engine, device)
+            if any(worker_concurrency(key[0], device) == 1 for key, _ in active):
+                limit = 1
+            if running >= limit:
+                continue
             entry = self._instances.get((spec.engine, spec.name, device))
-            return (
-                outstanding,
-                0 if entry is not None and entry.worker.pid is not None else 1,
-            )
+            warm = entry is not None and entry.worker.pid is not None
+            candidates.append((running, not warm, len(candidates), device))
+        return min(candidates)[3] if candidates else None
 
-        return min(gpu_devices, key=rank)
+    def _select_device(self, spec: ModelSpec, channel: str) -> str:
+        """Reserve in FIFO order; the caller holds the condition through admission."""
+        if channel == "cpu":
+            return "cpu"
+        devices = self.channels.physical_devices(channel)
+        if not self._gpu_waiters:
+            available = self._available_gpu(spec, devices)
+            if available is not None:
+                return available
+        if len(self._gpu_waiters) >= self.gpu_queue_size:
+            raise GpuQueueFullError(
+                f"GPU queue is full ({self.gpu_queue_size} waiting slots); retry later"
+            )
+        ticket = (spec.engine, spec.name, object())
+        self._gpu_waiters.append(ticket)
+        self._condition.notify_all()
+        try:
+            while not self._closed:
+                if self._gpu_waiters[0] is ticket:
+                    available = self._available_gpu(spec, devices)
+                    if available is not None:
+                        return available
+                self._condition.wait()
+            raise RuntimeError("Registry is closed")
+        finally:
+            self._gpu_waiters.remove(ticket)
+            self._condition.notify_all()
 
     def synthesize(
         self,
@@ -260,7 +315,7 @@ class EngineRegistry:
         lava_sr: bool = False,
         force_align: bool = False,
         model: str | None = None,
-        device: str | None = None,
+        channel: str | None = None,
     ) -> AudioResult:
         if not text.strip():
             raise ValueError("Text must contain speech")
@@ -283,7 +338,8 @@ class EngineRegistry:
             if self._closed:
                 raise RuntimeError("Registry is closed")
             self._maintain()
-            selected = self._select_device(spec, device)
+            selected_channel = self.channels.resolve(spec, channel)
+            selected = self._select_device(spec, selected_channel)
             key = (engine, spec.name, selected)
             entry = self._instances.get(key)
             if entry is None:

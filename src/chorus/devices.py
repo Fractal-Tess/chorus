@@ -46,7 +46,7 @@ def _probe_devices() -> dict[str, str]:
 
 
 class DevicePolicy:
-    def __init__(self, allowed: list[str] | None = None, default: str = "auto"):
+    def __init__(self, allowed: list[str] | None = None):
         available = {"cpu": "CPU"} if allowed == ["cpu"] else available_devices()
         self.allowed = list(
             dict.fromkeys(allowed if allowed is not None else available)
@@ -58,23 +58,6 @@ class DevicePolicy:
                 raise ValueError(
                     f"Device {device} is unavailable; available: {', '.join(available)}"
                 )
-        if default != "auto" and default not in self.allowed:
-            raise ValueError(f"Default device {default} is not enabled")
-        self.default = default
-
-    def resolve(self, supported: list[str], requested: str | None = None) -> str:
-        requested = requested or self.default
-        if requested == "auto":
-            choices = [d for d in self.allowed if d.split(":")[0] in supported]
-            choices.sort(key=lambda d: d == "cpu")
-            if not choices:
-                raise ValueError("This model has no supported, enabled device")
-            return choices[0]
-        if requested not in self.allowed:
-            raise ValueError(f"Device {requested} is not enabled")
-        if requested.split(":")[0] not in supported:
-            raise ValueError(f"This model does not support {requested}")
-        return requested
 
 
 if __name__ == "__main__":

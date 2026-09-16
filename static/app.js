@@ -1,6 +1,10 @@
 const state = {
   engines: [],
+  models: [],
   engine: null,
+  model: null,
+  channel: null,
+  generating: false,
   audioBuffer: null,
   waveform: [],
   audioUrl: null,
@@ -20,6 +24,11 @@ const elements = {
   language: document.querySelector('#language-select'),
   speed: document.querySelector('#speed-input'),
   speedValue: document.querySelector('#speed-value'),
+  channel: document.querySelector('#channel-select'),
+  channelDefault: document.querySelector('#channel-default'),
+  channelStatus: document.querySelector('#channel-status'),
+  modelField: document.querySelector('#model-field'),
+  model: document.querySelector('#model-select'),
   lavaSr: document.querySelector('#lava-sr-input'),
   forceAlign: document.querySelector('#force-align-input'),
   forceAlignLabel: document.querySelector('#force-align-label'),
@@ -49,6 +58,10 @@ const elements = {
   errorPanel: document.querySelector('#error-panel'),
   healthDot: document.querySelector('#health-dot'),
   healthLabel: document.querySelector('#health-label'),
+  diagnosticDevices: document.querySelector('#diagnostic-devices'),
+  diagnosticModels: document.querySelector('#diagnostic-models'),
+  diagnosticVram: document.querySelector('#diagnostic-vram'),
+  diagnosticRequests: document.querySelector('#diagnostic-requests'),
 };
 
 const languageNames = {
@@ -147,9 +160,50 @@ function updateAlignmentAvailability() {
     : 'Word alignment currently supports English only';
 }
 
+function channelStatus(channel) {
+  return state.model?.channels?.find((item) => item.id === channel)
+    || { id: channel, supported: false, enabled: false, available: false };
+}
+
+function channelLabel(status) {
+  if (!status.supported) return `${status.id.toUpperCase()} — unsupported`;
+  if (!status.enabled) return `${status.id.toUpperCase()} — disabled by policy`;
+  if (!status.available) return `${status.id.toUpperCase()} — unavailable`;
+  return `${status.id.toUpperCase()} — ready`;
+}
+
+function updateChannelAvailability() {
+  const configured = state.model?.default_channel || 'cpu';
+  elements.channelDefault.textContent = `Default ${configured.toUpperCase()}`;
+  elements.channel.innerHTML = ['cpu', 'gpu'].map((channel) => {
+    const status = channelStatus(channel);
+    return `<option value="${channel}" ${state.channel === channel ? 'selected' : ''} ${status.available ? '' : 'disabled'}>${channelLabel(status)}</option>`;
+  }).join('');
+  elements.channel.value = state.channel;
+  const selectedStatus = channelStatus(state.channel);
+  const unavailable = !selectedStatus.available;
+  elements.channelStatus.textContent = unavailable
+    ? (state.model?.channels.some((status) => status.available)
+      ? `${channelLabel(selectedStatus)}. Choose an available channel to generate.`
+      : `${channelLabel(selectedStatus)}. No channel is available; check server policy and hardware.`)
+    : `${channelLabel(selectedStatus)} · configured default is ${configured.toUpperCase()}.`;
+  elements.channelStatus.className = `mt-1 text-[10px] ${unavailable ? 'text-red-500 dark:text-red-400' : 'text-slate-400'}`;
+  elements.generateButton.disabled = unavailable || state.generating;
+  elements.model.disabled = state.generating;
+  elements.channel.disabled = state.generating;
+}
+
 function selectEngine(id) {
+  const previousModel = state.model;
+  const previousChannel = state.channel;
   state.engine = state.engines.find((engine) => engine.id === id);
   if (!state.engine) return;
+  const models = state.models.filter((model) => model.engine === id);
+  state.model = models.find((model) => model.model === previousModel?.model) || models.find((model) => model.default) || models[0] || null;
+  state.channel = previousModel?.engine === id && state.model?.model === previousModel.model
+    ? previousChannel
+    : state.model?.default_channel || 'cpu';
+  fillSelect(elements.model, models.map((model) => model.model), state.model?.model);
 
   const freeformVoice = Boolean(voiceInputLabels[state.engine.voice_input]);
   const styleInput = state.engine.voice_input === 'style';
@@ -164,6 +218,7 @@ function selectEngine(id) {
   fillSelect(elements.language, state.engine.languages, state.engine.default_language, (value) => languageNames[value] || value);
   updateNarrationBadge();
   updateAlignmentAvailability();
+  updateChannelAvailability();
   elements.engineName.textContent = state.engine.label;
   elements.engineSummary.textContent = state.engine.summary;
   elements.voiceCount.textContent = voiceInputLabels[state.engine.voice_input] || state.engine.voices.length;
@@ -302,21 +357,62 @@ function hideError() {
   elements.errorPanel.textContent = '';
 }
 
+function formatBytes(value) {
+  if (!Number.isFinite(value)) return '—';
+  if (value < 1024 * 1024) return `${Math.round(value / 1024).toLocaleString()} KiB`;
+  return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
+}
+
+async function refreshDiagnostics() {
+  const [devicesResponse, resourcesResponse] = await Promise.all([
+    fetch('/v1/devices'),
+    fetch('/v1/resources'),
+  ]);
+  if (!devicesResponse.ok || !resourcesResponse.ok) return;
+  const devices = await devicesResponse.json();
+  const resources = await resourcesResponse.json();
+  elements.diagnosticDevices.textContent = (devices.devices || []).map((device) => `${device.id}${device.enabled ? '' : ' (disabled)'}`).join(', ') || 'None detected';
+  const loaded = resources.models || [];
+  elements.diagnosticModels.textContent = loaded.length
+    ? loaded.map((item) => `${item.engine}/${item.model} · ${item.device}`).join('; ')
+    : 'None loaded';
+  const vram = resources.vram_used_bytes || {};
+  elements.diagnosticVram.textContent = Object.keys(vram).length
+    ? Object.entries(vram).map(([device, bytes]) => `${device}: ${formatBytes(bytes)}`).join(' · ')
+    : 'No VRAM usage reported';
+  const queue = resources.gpu_queue;
+  elements.diagnosticRequests.textContent = queue
+    ? `GPU ${queue.running ?? 0} running · ${queue.waiting ?? 0} waiting${queue.capacity != null ? ` / ${queue.capacity}` : ''}`
+    : loaded.map((item) => `${item.engine}/${item.model}: ${item.active_requests ?? 0}`).join(' · ') || 'No active requests';
+}
+
 async function refreshEngines(keepSelection = true) {
-  const response = await fetch('/v1/engines');
-  if (!response.ok) throw new Error('Could not load engine catalog.');
-  const data = await response.json();
+  const [enginesResponse, modelsResponse] = await Promise.all([
+    fetch('/v1/engines'),
+    fetch('/v1/models'),
+  ]);
+  if (!enginesResponse.ok || !modelsResponse.ok) throw new Error('Could not load engine catalog.');
+  const [enginesData, modelsData] = await Promise.all([enginesResponse.json(), modelsResponse.json()]);
   const selectedId = keepSelection ? state.engine?.id : null;
-  state.engines = data.engines;
+  state.engines = enginesData.engines;
+  state.models = modelsData.models;
   selectEngine(selectedId || state.engines[0].id);
+  refreshDiagnostics().catch(() => {});
 }
 
 async function generateSpeech(event) {
   event.preventDefault();
+  if (state.generating) return;
   hideError();
   const text = elements.text.value.trim();
   if (!text) {
     showError('Enter some text before generating speech.');
+    return;
+  }
+  const selectedStatus = channelStatus(state.channel);
+  if (!selectedStatus.available) {
+    showError(`${channelLabel(selectedStatus)}. Choose an available channel to generate.`);
+    updateChannelAvailability();
     return;
   }
   const useLavaSr = elements.lavaSr.checked;
@@ -325,7 +421,8 @@ async function generateSpeech(event) {
     ? elements.voiceDescription.value.trim() || null
     : elements.voice.value;
 
-  elements.generateButton.disabled = true;
+  state.generating = true;
+  updateChannelAvailability();
   elements.lavaSr.disabled = true;
   elements.forceAlign.disabled = true;
   elements.generateIcon.classList.add('animate-spin');
@@ -341,6 +438,8 @@ async function generateSpeech(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         engine: state.engine.id,
+        model: state.model?.model,
+        channel: state.channel,
         input: text,
         voice,
         language: elements.language.value,
@@ -401,9 +500,10 @@ async function generateSpeech(event) {
     showError(error.message || 'Synthesis failed.');
   } finally {
     clearInterval(timer);
-    elements.generateButton.disabled = false;
+    state.generating = false;
     elements.lavaSr.disabled = false;
     updateAlignmentAvailability();
+    updateChannelAvailability();
     elements.generateIcon.classList.remove('animate-spin');
     elements.generateIcon.innerHTML = '<path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>';
     elements.generateLabel.textContent = 'Generate speech';
@@ -416,7 +516,10 @@ async function checkHealth() {
     if (!response.ok) throw new Error();
     const health = await response.json();
     elements.healthDot.className = 'size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129_/_0.12)]';
-    elements.healthLabel.textContent = `${(health.allowed_devices || [health.device]).join(', ')} online`;
+    const channels = Array.isArray(health.channels) ? health.channels : [];
+    elements.healthLabel.textContent = channels.length
+      ? channels.map((channel) => `${channel.id.toUpperCase()} ${channel.available ? 'ready' : channel.supported ? 'unavailable' : 'unsupported'}`).join(' · ')
+      : 'API online';
   } catch {
     elements.healthDot.className = 'size-2 rounded-full bg-red-500';
     elements.healthLabel.textContent = 'API offline';
@@ -443,6 +546,15 @@ elements.voice.addEventListener('change', () => {
   if (language && [...elements.language.options].some((option) => option.value === language)) elements.language.value = language;
   updateNarrationBadge();
   updateAlignmentAvailability();
+});
+elements.model.addEventListener('change', () => {
+  state.model = state.models.find((model) => model.engine === state.engine.id && model.model === elements.model.value) || state.model;
+  state.channel = state.model?.default_channel || 'cpu';
+  updateChannelAvailability();
+});
+elements.channel.addEventListener('change', () => {
+  state.channel = elements.channel.value;
+  updateChannelAvailability();
 });
 elements.language.addEventListener('change', updateAlignmentAvailability);
 elements.form.addEventListener('submit', generateSpeech);

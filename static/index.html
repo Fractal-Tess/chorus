@@ -87,7 +87,7 @@
               <textarea id="speech-text" rows="7" maxlength="10000" required class="w-full resize-none bg-transparent text-xl font-medium leading-relaxed tracking-[-0.015em] text-slate-900 outline-none placeholder:text-slate-300 sm:text-2xl dark:text-white dark:placeholder:text-slate-700" placeholder="Type something worth hearing…">The best way to compare synthetic voices is to give every engine the exact same words.</textarea>
             </div>
 
-            <div class="grid gap-px bg-slate-100 sm:grid-cols-3 dark:bg-slate-800">
+            <div class="grid gap-px bg-slate-100 sm:grid-cols-4 dark:bg-slate-800">
               <label id="voice-label" for="voice-select" class="relative block bg-white px-5 py-4 transition-colors hover:bg-slate-50 focus-within:z-10 focus-within:bg-orange-50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-500 dark:bg-slate-900 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800">
                 <span class="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
                   <span id="voice-title">Voice</span>
@@ -105,6 +105,12 @@
               <label class="block bg-white px-5 py-4 dark:bg-slate-900">
                 <span class="mb-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400"><span>Speed</span><span id="speed-value" class="font-mono text-slate-600 dark:text-slate-300">1.00×</span></span>
                 <input id="speed-input" type="range" min="0.5" max="2" step="0.05" value="1" class="h-5 w-full accent-orange-500">
+              </label>
+              <label class="relative block bg-white px-5 py-4 transition-colors hover:bg-slate-50 focus-within:z-10 focus-within:bg-orange-50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-orange-500 dark:bg-slate-900 dark:hover:bg-slate-800 dark:focus-within:bg-slate-800">
+                <span class="mb-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400"><span>Execution</span><span id="channel-default" class="font-mono text-orange-600 dark:text-orange-400"></span></span>
+                <select id="channel-select" class="w-full appearance-none bg-transparent pr-6 text-sm font-semibold outline-none"></select>
+                <p id="channel-status" class="mt-1 text-[10px] text-slate-400" aria-live="polite"></p>
+                <svg viewBox="0 0 20 20" class="pointer-events-none absolute bottom-5 right-5 size-4 text-slate-400" fill="currentColor"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"/></svg>
               </label>
             </div>
 
@@ -177,11 +183,24 @@
               </div>
               <span id="loaded-badge" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400">Cold</span>
             </div>
+            <div id="model-field" class="mt-5 border-t border-slate-100 pt-5 dark:border-slate-800">
+              <label for="model-select" class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Model</label>
+              <select id="model-select" class="w-full appearance-none bg-transparent text-sm font-semibold outline-none"></select>
+            </div>
             <p id="engine-summary" class="text-sm leading-6 text-slate-600 dark:text-slate-400"></p>
             <dl class="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 dark:border-slate-800">
               <div><dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Voices</dt><dd id="voice-count" class="mt-1 font-mono text-sm font-bold">—</dd></div>
               <div><dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sample rate</dt><dd id="sample-rate" class="mt-1 font-mono text-sm font-bold">—</dd></div>
             </dl>
+          <details class="rounded-[24px] border border-slate-200/80 bg-white/80 p-5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+            <summary class="cursor-pointer text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Physical diagnostics</summary>
+            <div class="mt-4 space-y-3 text-xs">
+              <div><dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Devices</dt><dd id="diagnostic-devices" class="mt-1 font-mono text-slate-600 dark:text-slate-300">Loading…</dd></div>
+              <div><dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Loaded models</dt><dd id="diagnostic-models" class="mt-1 text-slate-600 dark:text-slate-300">Loading…</dd></div>
+              <div><dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">VRAM</dt><dd id="diagnostic-vram" class="mt-1 font-mono text-slate-600 dark:text-slate-300">Loading…</dd></div>
+              <div><dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Requests</dt><dd id="diagnostic-requests" class="mt-1 font-mono text-slate-600 dark:text-slate-300">Loading…</dd></div>
+            </div>
+          </details>
           </section>
 
           <section class="rounded-[24px] bg-slate-950 p-5 text-white dark:bg-white dark:text-slate-950">

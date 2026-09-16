@@ -11,6 +11,16 @@ from chorus.models import ModelCatalog
 MIB = 1024**2
 
 
+def _nonnegative_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("must be an integer") from error
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be nonnegative")
+    return parsed
+
+
 def _nonnegative_finite(value: str) -> float:
     try:
         parsed = float(value)
@@ -67,8 +77,25 @@ def main() -> None:
     parser.add_argument(
         "--devices", help="Allowed devices, e.g. cpu,cuda:0 (no duplicates)"
     )
-    parser.add_argument("--default-device", default="auto")
+    parser.add_argument(
+        "--channel-config",
+        type=Path,
+        default=(
+            Path(os.environ["TTS_CHANNEL_CONFIG"])
+            if os.environ.get("TTS_CHANNEL_CONFIG")
+            else None
+        ),
+        metavar="PATH",
+        help="Per-model logical channel policy TOML (default: channels.toml)",
+    )
     parser.add_argument("--engines", help="Comma-separated enabled engines")
+    parser.add_argument(
+        "--gpu-queue-size",
+        type=_nonnegative_integer,
+        default=32,
+        metavar="SLOTS",
+        help="Maximum waiting GPU requests (default: 32; 0 rejects when all GPUs are busy).",
+    )
     parser.add_argument("--list-devices", action="store_true")
     parser.add_argument("--fetch-model", metavar="ENGINE/MODEL")
     parser.add_argument(
@@ -106,10 +133,12 @@ def main() -> None:
         _mib_to_bytes(args.ram_budget_mib) if args.ram_budget_mib is not None else None
     )
     catalog = ModelCatalog(args.models_dir)
+    if args.channel_config is not None and not args.channel_config.is_file():
+        parser.error(f"Channel configuration file not found: {args.channel_config}")
     if args.fetch_model:
         try:
             catalog.fetch(args.fetch_model)
-        except (ValueError, RuntimeError) as error:
+        except (ValueError, RuntimeError, OSError) as error:
             parser.error(str(error))
         return
     from chorus.devices import DevicePolicy, available_devices
@@ -134,8 +163,10 @@ def main() -> None:
     try:
         registry = EngineRegistry(
             catalog,
-            DevicePolicy(devices, args.default_device),
+            DevicePolicy(devices),
             args.engines.split(",") if args.engines else None,
+            channel_config=args.channel_config,
+            gpu_queue_size=args.gpu_queue_size,
             idle_timeout=args.idle_timeout,
             ram_budget_bytes=ram_budget_bytes,
             vram_budget_bytes=vram_budget_bytes or None,
@@ -148,7 +179,7 @@ def main() -> None:
 
         api.registry = registry
         uvicorn.run(api.app, host=args.host, port=args.port)
-    except (ValueError, RuntimeError) as error:
+    except (ValueError, RuntimeError, OSError) as error:
         parser.error(str(error))
     finally:
         if registry is not None:
