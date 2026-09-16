@@ -9,7 +9,12 @@ class Adapter(Engine):
         from supertonic import TTS
 
         model = self.cached(
-            "supertonic", lambda: TTS(model="supertonic-3", auto_download=True)
+            "supertonic",
+            lambda: TTS(
+                model="supertonic-3",
+                model_dir=self.spec.directory,
+                auto_download=False,
+            ),
         )
         voice = voice or "M1"
         style = self.cached(

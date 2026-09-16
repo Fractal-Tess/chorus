@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import math
 import os
 from pathlib import Path
 
+from chorus.engines import ENGINE_INFO
 from chorus.models import ModelCatalog
 
 MIB = 1024**2
@@ -67,8 +69,32 @@ def _unique_devices(
     return devices
 
 
+def _selected_engines(
+    parser: argparse.ArgumentParser, value: str | None
+) -> list[str] | None:
+    if value is None:
+        return None
+    engines = [name.strip() for name in value.split(",")]
+    if not all(engines) or len(set(engines)) != len(engines):
+        parser.error("--engines requires nonempty, unique engine names")
+    unknown = [name for name in engines if name not in ENGINE_INFO]
+    if unknown:
+        parser.error(
+            f"Unknown engines: {', '.join(unknown)}. "
+            f"Choose from: {', '.join(ENGINE_INFO)}"
+        )
+    return engines
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Local multi-engine TTS server")
+    parser = argparse.ArgumentParser(
+        prog="serve-api", description="Local multi-engine TTS server"
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {importlib.metadata.version('chorus')}",
+    )
     parser.add_argument("--host", default=os.environ.get("TTS_HOST", "127.0.0.1"))
     parser.add_argument(
         "--port", type=int, default=int(os.environ.get("TTS_PORT", "8000"))
@@ -88,7 +114,16 @@ def main() -> None:
         metavar="PATH",
         help="Per-model logical channel policy TOML (default: channels.toml)",
     )
-    parser.add_argument("--engines", help="Comma-separated enabled engines")
+    parser.add_argument(
+        "--engines",
+        metavar="NAME[,NAME...]",
+        help="Required when serving: supported engines, e.g. kokoro,breeze",
+    )
+    parser.add_argument(
+        "--download-missing",
+        action="store_true",
+        help="Fetch only missing files for selected engines before starting the API",
+    )
     parser.add_argument(
         "--gpu-queue-size",
         type=_nonnegative_integer,
@@ -123,6 +158,13 @@ def main() -> None:
         help="Soft per-device VRAM cache budget (repeatable, e.g. cuda:0=4096); duplicate devices are rejected.",
     )
     args = parser.parse_args()
+    engines = _selected_engines(parser, args.engines)
+    if args.download_missing and (args.fetch_model or args.list_devices):
+        parser.error("--download-missing requires server startup with --engines")
+    if not (args.fetch_model or args.list_devices) and engines is None:
+        parser.error(
+            "--engines is required when starting the API, e.g. --engines kokoro,breeze"
+        )
     devices = _unique_devices(parser, args.devices)
     vram_budget_bytes: dict[str, int] = {}
     for device, mib in args.vram_budget_mib:
@@ -132,7 +174,10 @@ def main() -> None:
     ram_budget_bytes = (
         _mib_to_bytes(args.ram_budget_mib) if args.ram_budget_mib is not None else None
     )
-    catalog = ModelCatalog(args.models_dir)
+    try:
+        catalog = ModelCatalog(args.models_dir)
+    except (ValueError, OSError) as error:
+        parser.error(f"Cannot read model catalog: {error}")
     if args.channel_config is not None and not args.channel_config.is_file():
         parser.error(f"Channel configuration file not found: {args.channel_config}")
     if args.fetch_model:
@@ -161,16 +206,23 @@ def main() -> None:
 
     registry = None
     try:
+        catalog.selected(engines)
         registry = EngineRegistry(
             catalog,
             DevicePolicy(devices),
-            args.engines.split(",") if args.engines else None,
+            engines,
             channel_config=args.channel_config,
             gpu_queue_size=args.gpu_queue_size,
             idle_timeout=args.idle_timeout,
             ram_budget_bytes=ram_budget_bytes,
             vram_budget_bytes=vram_budget_bytes or None,
         )
+        for selector in args.preload:
+            engine, model = selector.split("/", 1)
+            if engine not in registry.enabled:
+                raise ValueError(f"Cannot preload disabled engine: {engine}")
+            catalog.resolve(engine, model)
+        catalog.prepare(registry.enabled, download_missing=args.download_missing)
         for selector in args.preload:
             registry.preload(selector)
         import uvicorn

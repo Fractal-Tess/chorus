@@ -19,11 +19,13 @@ class Adapter(Engine):
             )
         if language and language.lower() not in {"en", "en-us"}:
             raise ValueError("The bundled Piper model only supports en-US")
-        model_path = self.spec.directory.parent / "en_US-lessac-medium.onnx"
-        if not model_path.is_file():
-            raise RuntimeError(f"Piper model is missing: {model_path}")
+        model_path = self.spec.artifact("en_US-lessac-medium.onnx")
+        config_path = self.spec.artifact("en_US-lessac-medium.onnx.json")
         model = self.cached(
-            "piper", lambda: PiperVoice.load(model_path, use_cuda=False)
+            "piper",
+            lambda: PiperVoice.load(
+                model_path, config_path=config_path, use_cuda=False
+            ),
         )
         output = io.BytesIO()
         with wave.open(output, "wb") as wav_file:

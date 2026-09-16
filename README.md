@@ -20,21 +20,31 @@ The development flake in `nix/` provides Python 3.12, `uv`, Git LFS, FFmpeg, SoX
 
 ```bash
 direnv allow
-git lfs install
-git lfs pull --include="models/kokoro/**"
 serve-api --list-devices
-serve-api --devices cpu,cuda:0
+serve-api --engines kokoro --download-missing --devices cpu,cuda:0
 ```
 
 The development shell adds `bin/` to `PATH`, so launcher names are unchanged. Their files now live at `bin/serve-api`, `bin/kokoro-tts`, and the other `bin/*-tts` paths.
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api`.
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api --engines kokoro`. `serve-api --version` reports the release version.
 
-Kokoro weights and all 54 voice tensors live in `models/kokoro/82m-v1.0/`, tracked with Git LFS. Missing files can also be fetched from checksum-verified, pinned upstream revisions with `serve-api --fetch-model kokoro/82m-v1.0`. Inference never downloads Kokoro weights or voice tensors. Language-processing resources and the other engines' upstream libraries retain their existing download behavior.
+`--engines` is required when starting the API. Before listening, Chorus checks the selected engines' model files for missing files, empty files, and unmaterialized Git LFS pointers. It exits with the affected paths and repair commands if anything is incomplete. Files belonging to unselected engines are not required.
 
-For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selected engines' weights, then use the scoped `git lfs pull` commands. LFS keeps every committed weight version; remote storage and download quotas still apply.
+```bash
+# Check local files and refuse to start if anything is missing.
+serve-api --engines kokoro,breeze --devices cpu,cuda:0
 
-`--devices` sets the physical hardware pool; speech requests choose a CPU or GPU channel rather than a GPU number. `--engines kokoro` restricts the engine list. `--preload kokoro/82m-v1.0` warms the model on its configured default channel before accepting requests. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
+# Fetch only missing files, verify their SHA-256 hashes, then start.
+serve-api --engines kokoro,breeze --download-missing --devices cpu,cuda:0
+```
+
+Existing complete files are left untouched. Downloads use pinned revisions from each model manifest; ordinary startup does not fetch models. Checks cover all advertised model versions, voices, and languages of the selected engines, including Pocket's six language checkpoints. Optional LavaSR and alignment resources are separate.
+
+Breeze and Fish also require their isolated runtime setup below. `--download-missing` downloads model assets, not Python environments or upstream source checkouts; missing runtime files produce the corresponding setup commands. `serve-api --fetch-model kokoro/82m-v1.0` remains available for explicit model-only fetching.
+
+For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selected engines' weights, then use `--download-missing` or a scoped `git lfs pull --include="models/kokoro/**"`. LFS keeps every committed weight version; remote storage and download quotas still apply.
+
+`--devices` sets the physical hardware pool; speech requests choose a CPU or GPU channel rather than a GPU number. `--preload kokoro/82m-v1.0` warms a selected model on its configured default channel after the file checks. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
 
 CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The environment includes CUDA 12 and cuDNN runtime libraries; an NVIDIA driver is still required. On NixOS, the launcher includes `/run/opengl-driver/lib`. PyTorch and the optional processors remain CPU-based.
 
@@ -69,7 +79,7 @@ Startup loads no models unless `--preload` is supplied. Each model/device pair r
 Set an aggregate worker RAM budget and separate VRAM budgets for enabled GPUs:
 
 ```bash
-serve-api --devices cpu,cuda:0,cuda:1 \
+serve-api --engines kokoro --devices cpu,cuda:0,cuda:1 \
   --idle-timeout 300 \
   --ram-budget-mib 8192 \
   --vram-budget-mib cuda:0=4096 \
@@ -163,7 +173,7 @@ nix develop path:./nix
 python -m compileall -q src/chorus
 ```
 
-Run the GPU queue regression checks without loading models or requiring CUDA:
+Run the startup, encoding, FFT, and GPU queue regressions without model downloads or CUDA:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -179,7 +189,7 @@ tailwindcss \
   --minify
 ```
 
-Standalone Python commands live in `src/chorus/commands/`, their shell launchers in `bin/`, and browser assets and Tailwind configuration in `static/`. Generated audio and smoke reports belong in the ignored `outputs/` directory.
+Standalone Python commands live in `src/chorus/commands/`, their shell launchers in `bin/`, and browser assets and Tailwind configuration in `static/`. Piper and Kitten commands use the versioned local model directories; fetch their manifests' files first. Kitten's `--model` accepts a local directory, not a Hub repository. Generated audio and smoke reports belong in the ignored `outputs/` directory.
 
 Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device. Kokoro CUDA workers overlap up to two requests in one ONNX session without duplicating model weights; CPU and other engine workers serialize requests. Additional requests wait for a slot. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 
@@ -211,9 +221,7 @@ GPU 1 reached 88°C and reported thermal throttling during the latest fixed-rate
 ```bash
 git submodule update --init runtimes/breeze/upstream
 uv sync --project runtimes/breeze --locked --python "$UV_PYTHON"
-git lfs pull --include="models/breeze/**"
-# Alternatively: serve-api --fetch-model breeze/tts-2
-serve-api --engines kokoro,breeze --devices cpu,cuda:0
+serve-api --engines kokoro,breeze --download-missing --devices cpu,cuda:0
 ```
 
 Call `/v1/audio/speech` with `"engine": "breeze", "model": "tts-2", "channel": "gpu"`. For this engine, `voice` is an optional natural-language description, such as `"A calm, warm English narrator with clear diction."`; the browser exposes a text field instead of a voice list. Select `language` as `en` or `zh`. Language is inferred from the text, not translated. Speed must remain `1.0`. The existing `lava_sr` and English `force_align` options work on Breeze output.
@@ -231,9 +239,7 @@ Large engines can use adapter packages rather than a single file and can own iso
 ```bash
 git submodule update --init runtimes/fish/upstream
 uv sync --project runtimes/fish --locked --python "$UV_PYTHON"
-git lfs pull --include="models/fish/**"
-# Alternatively: serve-api --fetch-model fish/s2-pro
-serve-api --engines fish --devices cuda:0
+serve-api --engines fish --download-missing --devices cuda:0
 ```
 
 Use `"engine": "fish", "model": "s2-pro", "channel": "gpu"` with the shared speech endpoint. Put natural-language cues in `input`, for example `"[whisper] Close the door quietly."`. The optional `voice` field adds a leading style cue such as `"warm narration"`; it is not a named voice, reference-audio path, or voice clone. The browser labels this field **Style**.

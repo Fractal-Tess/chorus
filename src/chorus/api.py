@@ -86,17 +86,19 @@ def store_alignment(payload: dict[str, object]) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global registry
-    if registry is None:
-        registry = EngineRegistry()
     try:
+        if registry is None:
+            registry = EngineRegistry()
+            registry.catalog.prepare(registry.enabled)
         yield
     finally:
-        registry.close()
+        if registry is not None:
+            registry.close()
 
 
 app = FastAPI(
     title="Chorus API",
-    version="1.0.0",
+    version=importlib.metadata.version("chorus"),
     description="Local multi-engine TTS with CPU/CUDA synthesis and optional post-processing.",
     lifespan=lifespan,
 )

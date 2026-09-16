@@ -3,5 +3,1014 @@
   "devices": [
     "cpu"
   ],
-  "artifacts": {}
+  "artifacts": {
+    "languages/english/model.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/model.safetensors",
+      "sha256": "be9c6b4876d3f30740a8225dfcaa2e43dc4aeb753c15272735bee16bbb4abb0a"
+    },
+    "languages/english/tokenizer.model": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/tokenizer.model",
+      "sha256": "d461765ae179566678c93091c5fa6f2984c31bbe990bf1aa62d92c64d91bc3f6"
+    },
+    "languages/english/embeddings/alba.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/alba.safetensors",
+      "sha256": "69c32db63ca56843d994f81f343f62e0bf2d73f7e4c9bc73e44bb1110b1d8845"
+    },
+    "languages/english/embeddings/giovanni.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/giovanni.safetensors",
+      "sha256": "a5ee718157ec1c6fd9c1e66a7733c7e6337d474a74a7da756455d27717885c59"
+    },
+    "languages/english/embeddings/lola.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/lola.safetensors",
+      "sha256": "34972e86b07b17272a8061460054a08119399cace9454979052b9e2d96664e8c"
+    },
+    "languages/english/embeddings/juergen.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/juergen.safetensors",
+      "sha256": "e74d67b38339fc01118e3bbe2c90d6d40e601b161dbf7be906421956ba80a532"
+    },
+    "languages/english/embeddings/rafael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/rafael.safetensors",
+      "sha256": "ac19f099f6cd839875a629c3e2e91e0dfc2c197acf2875db168d0ae244fb58bd"
+    },
+    "languages/english/embeddings/estelle.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/estelle.safetensors",
+      "sha256": "ccebef7f51762c7fc08870f5ecf268e8713551ae2c9f7984ddaec0c1e1c77153"
+    },
+    "languages/english/embeddings/anna.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/anna.safetensors",
+      "sha256": "5ea82f78db006c9fd34e32ddd5aae82674b5b32646097977436458d00af80dfa"
+    },
+    "languages/english/embeddings/azelma.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/azelma.safetensors",
+      "sha256": "9f3e69f29075f991fd47774566865ef0e0e637cb5a35992c9919761b5b84b1de"
+    },
+    "languages/english/embeddings/bill_boerst.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/bill_boerst.safetensors",
+      "sha256": "75610127d44e0b05b442154f80f89f993df235aecc6cad7070f11000d006c188"
+    },
+    "languages/english/embeddings/caro_davy.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/caro_davy.safetensors",
+      "sha256": "a5961b63a2e7a5cfd7edc383aa9042fb70fd14a9dee6310cdc633881a7f2449a"
+    },
+    "languages/english/embeddings/charles.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/charles.safetensors",
+      "sha256": "299edc20182eeccfbf94e308626f259da4fbf339daa8d5905218f2b1774639b8"
+    },
+    "languages/english/embeddings/cosette.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/cosette.safetensors",
+      "sha256": "c4fdc15f5a3a20c44dd0064a37e87d15d25562936e8dbad7e07b9832015a545d"
+    },
+    "languages/english/embeddings/eponine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/eponine.safetensors",
+      "sha256": "bda3b76a384ff355fe0350736387765946304ae8ca16e59f60ea3296a1c99cc6"
+    },
+    "languages/english/embeddings/eve.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/eve.safetensors",
+      "sha256": "ea9c2faf862a6c9d2cb61910fdf02842ae56940382cc8c1000fdb1b43269692b"
+    },
+    "languages/english/embeddings/fantine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/fantine.safetensors",
+      "sha256": "51a8a4355d7f912d4959e4b1918314fda85ad47eba0a33a1d78a4a505d3465f5"
+    },
+    "languages/english/embeddings/george.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/george.safetensors",
+      "sha256": "0c1c6c57c55a98d81254b33728150c7776f40647fe95258d1a6c1a02780b5d02"
+    },
+    "languages/english/embeddings/jane.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/jane.safetensors",
+      "sha256": "37386227ca8ec5bf1b8e516c13d132ce5ff5437a304fe90129a1c62f41d9a008"
+    },
+    "languages/english/embeddings/javert.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/javert.safetensors",
+      "sha256": "0ae88e03ca4e76a0e16cbf321a807428febda9d9e9bc0358c02e7f9c9e2c263b"
+    },
+    "languages/english/embeddings/jean.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/jean.safetensors",
+      "sha256": "90be4b8f50bb4d2dbe27e3fb4e31417cf6a57928931f0a60426a1748821a3d12"
+    },
+    "languages/english/embeddings/marius.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/marius.safetensors",
+      "sha256": "04f84efcb77a0547ba582c058db496f7ff4920891d49d37b9950d128422582a8"
+    },
+    "languages/english/embeddings/mary.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/mary.safetensors",
+      "sha256": "a8f2adf260cab966fe0a113d6b549d6efdeaa79de544ae0ff34b5b6a41445a59"
+    },
+    "languages/english/embeddings/michael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/michael.safetensors",
+      "sha256": "8937f724ac4719b9aa51ea0ba1f18f9de0af7a663ad6263558266c1a53c9722d"
+    },
+    "languages/english/embeddings/paul.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/paul.safetensors",
+      "sha256": "ed7a019168f94dfe77009f1b0de59387abc6fbb0db954d38ce722ecb77da61aa"
+    },
+    "languages/english/embeddings/peter_yearsley.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/peter_yearsley.safetensors",
+      "sha256": "dd977a6e15591e347c9a23fa7cc09e35a65b462917f5eeb162baff6dc9e3f685"
+    },
+    "languages/english/embeddings/stuart_bell.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/stuart_bell.safetensors",
+      "sha256": "5a49da7ca5df05d02587ec4a0981c0d318e045f68e24423c4203ce474d9b33dc"
+    },
+    "languages/english/embeddings/vera.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/english/embeddings/vera.safetensors",
+      "sha256": "4bf50ddd957b5d218b264fdcf18efbbc7384d12da3eca98ca19b9e8dd6976acc"
+    },
+    "languages/french_24l/model.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/model.safetensors",
+      "sha256": "e5f95d55f8524948ef0be523542b15639a4d1b01bc2e1f1974f981d288d20229"
+    },
+    "languages/french_24l/tokenizer.model": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/tokenizer.model",
+      "sha256": "521c85bdb2da10618f4be52021ed1cb2a7a6299b040708487f133193f7b305e2"
+    },
+    "languages/french_24l/embeddings/alba.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/alba.safetensors",
+      "sha256": "81ef74464398d6db16c2734276293806845f755725a6b16feb4108b9ae781731"
+    },
+    "languages/french_24l/embeddings/giovanni.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/giovanni.safetensors",
+      "sha256": "3c3a5311b3187f270883271e61f8fbd7a3a12c47140a759c0d05f83a37876de2"
+    },
+    "languages/french_24l/embeddings/lola.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/lola.safetensors",
+      "sha256": "b9fcbf24e36171e260bde32f2834421658fa68d4d19f50e013f44122b96ebc3f"
+    },
+    "languages/french_24l/embeddings/juergen.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/juergen.safetensors",
+      "sha256": "7c695bf10e8ea551f3151fe3c5de787fa5a6353665aab190be14dd6cd1320c93"
+    },
+    "languages/french_24l/embeddings/rafael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/rafael.safetensors",
+      "sha256": "faf602de5907c0d022a551b97dd35d886cda71e4762afb5fd2db1a0bd3bb4326"
+    },
+    "languages/french_24l/embeddings/estelle.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/estelle.safetensors",
+      "sha256": "f1fa8ea7ea7f39f4d9a14c403ea3bd97af17e63e1e64ca9c8484efaedca93170"
+    },
+    "languages/french_24l/embeddings/anna.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/anna.safetensors",
+      "sha256": "8ec25e248cfe30c473bd3ceae408a7178eae072c40e45ccb1ed588b005d6c386"
+    },
+    "languages/french_24l/embeddings/azelma.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/azelma.safetensors",
+      "sha256": "15db40136e4c33f8e4964ccf999b2bccba17f5897bd08406a4d789a33bb9d1b5"
+    },
+    "languages/french_24l/embeddings/bill_boerst.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/bill_boerst.safetensors",
+      "sha256": "9a8ea532c38b4b5b346be3c5cb5468b47534ba5ba1e2e500bd1701f802665f90"
+    },
+    "languages/french_24l/embeddings/caro_davy.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/caro_davy.safetensors",
+      "sha256": "1e645422e06d262288b42e51c873206ad365ceef9649d9c02d24231e6881f205"
+    },
+    "languages/french_24l/embeddings/charles.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/charles.safetensors",
+      "sha256": "5ba86d5829734b5f6ac378ea87e893d1d242cdafb8dfaa6c9bd14ac219e1fe47"
+    },
+    "languages/french_24l/embeddings/cosette.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/cosette.safetensors",
+      "sha256": "657e6a403de2cf159d1decdc6183fd3f8b12885885051c326061b4ee56ff492b"
+    },
+    "languages/french_24l/embeddings/eponine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/eponine.safetensors",
+      "sha256": "dc37497d3d2c6ebaf3b43390e4518c9995f0a9a34839d9b3cedac0505963e6fd"
+    },
+    "languages/french_24l/embeddings/eve.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/eve.safetensors",
+      "sha256": "caaa3ac419951d927ee40bdba22b3a5273f3d23564b2d573e1ec81a24c77051d"
+    },
+    "languages/french_24l/embeddings/fantine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/fantine.safetensors",
+      "sha256": "f19a024716b9132a310f9c1e1b750e11878a5079d6abbe9a01df6a78034f3db3"
+    },
+    "languages/french_24l/embeddings/george.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/george.safetensors",
+      "sha256": "f98dd4400b5dca15a1a17c7ca7a9a31525c9e6acf03bd90e58da06bf2aec222e"
+    },
+    "languages/french_24l/embeddings/jane.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/jane.safetensors",
+      "sha256": "799d8323c8808977f3d7f6faca208c29c8e737c2e16242d6a351a47997d6df89"
+    },
+    "languages/french_24l/embeddings/javert.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/javert.safetensors",
+      "sha256": "be49b3147a5a7a819fa190b5e44e471eef8b92cd18a6ed2594edff3996ba95bc"
+    },
+    "languages/french_24l/embeddings/jean.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/jean.safetensors",
+      "sha256": "13b53669e6ffed4e242044280fa8375dbd6c9002e2c6da5088d299e286bf5440"
+    },
+    "languages/french_24l/embeddings/marius.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/marius.safetensors",
+      "sha256": "6e2e12dc9a7650b3e3d5a28be9a2550ced91c5a11d5de9021efc6107dcc78587"
+    },
+    "languages/french_24l/embeddings/mary.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/mary.safetensors",
+      "sha256": "ad3d85829605e0b28e509c65350198c15f2a0592a39bf88063b4d01b4085c8b8"
+    },
+    "languages/french_24l/embeddings/michael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/michael.safetensors",
+      "sha256": "2d1dc47d55c149d79701c6d8e9c7f8efab7dfd397616526969b138a05619d0b4"
+    },
+    "languages/french_24l/embeddings/paul.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/paul.safetensors",
+      "sha256": "5dd222567a9c167ed3c39ea5f336e5ab0fcd51be653d2de68d9a8f9db19757c2"
+    },
+    "languages/french_24l/embeddings/peter_yearsley.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/peter_yearsley.safetensors",
+      "sha256": "997e18754aa28223e48fe19f8b4025b55cd5098b06cb36a4ab842c0325ad6ddc"
+    },
+    "languages/french_24l/embeddings/stuart_bell.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/stuart_bell.safetensors",
+      "sha256": "38793a0909ca62261d774d2ef09bba0120c552e67690153f4b061426fa36c791"
+    },
+    "languages/french_24l/embeddings/vera.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/french_24l/embeddings/vera.safetensors",
+      "sha256": "8533421ac10c6b169bb6271a16f50a1e851bddfe914ab8a7509a5b7908a9686e"
+    },
+    "languages/spanish_24l/model.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/model.safetensors",
+      "sha256": "4875e2817c2ca922d4102825c74382fe82b58701a79ce6e6140227ae3d66000b"
+    },
+    "languages/spanish_24l/tokenizer.model": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/tokenizer.model",
+      "sha256": "aac2b96478e3e3068712bd5c45dc196f84b7341ea72587c33a2094957f0c1b0c"
+    },
+    "languages/spanish_24l/embeddings/alba.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/alba.safetensors",
+      "sha256": "4fb1780fda68177656f7da0c781db388a5b9dd4fc35a47b27f24600b16854984"
+    },
+    "languages/spanish_24l/embeddings/giovanni.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/giovanni.safetensors",
+      "sha256": "e8386d054b1f2d9af2bcc48c20d5273716a96ef04adece489af287c5dac20a68"
+    },
+    "languages/spanish_24l/embeddings/lola.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/lola.safetensors",
+      "sha256": "07b36d8bfd72fd0e9aa091b5f56241a3b6c5b251f7ff466be43b7000e0efc661"
+    },
+    "languages/spanish_24l/embeddings/juergen.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/juergen.safetensors",
+      "sha256": "eef78e93daac817e08825a0f2acfe3968c6480f73eb05fa8c2034a2b9ec17a19"
+    },
+    "languages/spanish_24l/embeddings/rafael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/rafael.safetensors",
+      "sha256": "bae1a031a903e83fbff721655b2ebe4286559873d07de464cc2748ce5c9b9103"
+    },
+    "languages/spanish_24l/embeddings/estelle.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/estelle.safetensors",
+      "sha256": "b16a48de7b9f2f2afe4350dd32fd5a01e64b873e258a990464dc8f2e1582b344"
+    },
+    "languages/spanish_24l/embeddings/anna.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/anna.safetensors",
+      "sha256": "5190915b6ced491154d619f32dfc7f7829ce1d633f0615223dae4c55b57535e0"
+    },
+    "languages/spanish_24l/embeddings/azelma.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/azelma.safetensors",
+      "sha256": "25cc32b8bbfee482a1062f6e81414991253b47f3c7b16b2f3288c93ec1e3b94d"
+    },
+    "languages/spanish_24l/embeddings/bill_boerst.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/bill_boerst.safetensors",
+      "sha256": "4c4e8ad3d0e8c87657f2a3b32b3b3d70943935cdbd6917d90668bfbe69cc92be"
+    },
+    "languages/spanish_24l/embeddings/caro_davy.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/caro_davy.safetensors",
+      "sha256": "1e421c80de42dad99fd36a1d26307e52fb9eb9feeeacbcd1d359971e90929f2d"
+    },
+    "languages/spanish_24l/embeddings/charles.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/charles.safetensors",
+      "sha256": "17ea33581e5d14ec4d1f2e87621695ae36d9b5a5558d21d6830f0da88ff9c704"
+    },
+    "languages/spanish_24l/embeddings/cosette.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/cosette.safetensors",
+      "sha256": "7eddd3552a292fbb8a90d882eed81bdd56f41b23f587d2493928b3e08d9a287e"
+    },
+    "languages/spanish_24l/embeddings/eponine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/eponine.safetensors",
+      "sha256": "b652112b2de9155bcc3ba0cd4c7279c1632d0cc39cd527c1085468e926d2640c"
+    },
+    "languages/spanish_24l/embeddings/eve.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/eve.safetensors",
+      "sha256": "373fa084cf1d5773445b6dd559614ffd1cf954c32517ccb9862bf5b735d961e4"
+    },
+    "languages/spanish_24l/embeddings/fantine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/fantine.safetensors",
+      "sha256": "c10a16bac8ec3d98e23927baad1471d8959884cb99622b41734491b517627e60"
+    },
+    "languages/spanish_24l/embeddings/george.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/george.safetensors",
+      "sha256": "bfc8a6e4e01060d3843e0ab19912739697824d5a84de42618986a4abd65154bb"
+    },
+    "languages/spanish_24l/embeddings/jane.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/jane.safetensors",
+      "sha256": "2993ab3450e140cf508ef11549e3421636d552c7ff7dd94370d348e0a27407dd"
+    },
+    "languages/spanish_24l/embeddings/javert.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/javert.safetensors",
+      "sha256": "02568ad8bc470966b7ad38ed2952c3e68465a9183d2a7e4d910d0424d016216d"
+    },
+    "languages/spanish_24l/embeddings/jean.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/jean.safetensors",
+      "sha256": "876c50c9c200f0f32c9b4f9e591dd11b72dc8419b99773b6e4c82d8404fb6c20"
+    },
+    "languages/spanish_24l/embeddings/marius.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/marius.safetensors",
+      "sha256": "35b9499e5fbbca09d12887916dec00e5a3affc81c67d1535f5fb696802bd19a7"
+    },
+    "languages/spanish_24l/embeddings/mary.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/mary.safetensors",
+      "sha256": "01bf1479ac0f914adec0c7ca325d49d239bfec03ddb9e30a28e231253be43457"
+    },
+    "languages/spanish_24l/embeddings/michael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/michael.safetensors",
+      "sha256": "6d3227ee02a7fee6d0c581289a6fb23a0502f00777a9ab6ea780cb9b03bf4c84"
+    },
+    "languages/spanish_24l/embeddings/paul.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/paul.safetensors",
+      "sha256": "a9ecf89514ea906d77e5aed6485566ce3714cbc5effb9652ac53d94db3251d3a"
+    },
+    "languages/spanish_24l/embeddings/peter_yearsley.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/peter_yearsley.safetensors",
+      "sha256": "719f6cbcb7ec48751229de0354c4d1cf3e75bc75063ef9455896efd8da88ff9b"
+    },
+    "languages/spanish_24l/embeddings/stuart_bell.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/stuart_bell.safetensors",
+      "sha256": "76ec9ffc71b1c59ff8ae4be33ae4eb3761d7f4987c9c11405f9cc63db889bf8f"
+    },
+    "languages/spanish_24l/embeddings/vera.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/spanish_24l/embeddings/vera.safetensors",
+      "sha256": "0b5364212a6b0994475cc3a98919ac6439a435d92731ae8518b180607e7c690e"
+    },
+    "languages/german_24l/model.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/model.safetensors",
+      "sha256": "359795002697d508f09283e1730923b244acc94ee51c1bfe529d3aea06ac5eae"
+    },
+    "languages/german_24l/tokenizer.model": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/tokenizer.model",
+      "sha256": "389079b9c67cd17ff1c565d53bc695df390b4ca8abf2300947e659585edd9d2a"
+    },
+    "languages/german_24l/embeddings/alba.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/alba.safetensors",
+      "sha256": "58273ae4d4aca6ea4ac50a7603040acd269fb9f200711ed4ef156a342dd4a6d1"
+    },
+    "languages/german_24l/embeddings/giovanni.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/giovanni.safetensors",
+      "sha256": "9cc77677c5c5c47e61cd8e74c3c70584ff8519a3e6ebb53f9b41b0aae2c03be7"
+    },
+    "languages/german_24l/embeddings/lola.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/lola.safetensors",
+      "sha256": "adebe1f4c560b87111c6b5b3521913741055265314bb5c264f93a15362cfa3e3"
+    },
+    "languages/german_24l/embeddings/juergen.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/juergen.safetensors",
+      "sha256": "e18630b75ebdbff7930c161a66d60351a2010a18875c0c06fa9c547013e6913f"
+    },
+    "languages/german_24l/embeddings/rafael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/rafael.safetensors",
+      "sha256": "efb1b3be69cb079e450ce3181f6e96b413d048b146fc664abd67ba67803f4713"
+    },
+    "languages/german_24l/embeddings/estelle.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/estelle.safetensors",
+      "sha256": "b167b134fbf8d908c069170c7940d0c21d2e5b2a546926e73c71a303b1740911"
+    },
+    "languages/german_24l/embeddings/anna.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/anna.safetensors",
+      "sha256": "1df6f5b97f8ce1d26a46ac0ddfe9c3d77f41f760b2fb7fa78a14844dc2c43924"
+    },
+    "languages/german_24l/embeddings/azelma.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/azelma.safetensors",
+      "sha256": "b1eb7710f9424c36048cbbf9229c69de5035995355366bc2ca09fe07d5262aca"
+    },
+    "languages/german_24l/embeddings/bill_boerst.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/bill_boerst.safetensors",
+      "sha256": "0ef62df88a468eea1d4cee8c746bde87ff4141000bf2475ad1dca23d135a4f77"
+    },
+    "languages/german_24l/embeddings/caro_davy.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/caro_davy.safetensors",
+      "sha256": "6ab1847ec2da8cb30c2509a793debab79ebd98b741dad927061674a72b43fb50"
+    },
+    "languages/german_24l/embeddings/charles.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/charles.safetensors",
+      "sha256": "1dab8552536b517b7378927fd7c955461e986b311f867678705752bda4019f68"
+    },
+    "languages/german_24l/embeddings/cosette.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/cosette.safetensors",
+      "sha256": "71658d75661ebf5a4fee70c83dfe2ee69e97ef229b03438117a210637da0ccc1"
+    },
+    "languages/german_24l/embeddings/eponine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/eponine.safetensors",
+      "sha256": "d06ac765ad96de2b79342a7f09952b004fb0ea3b4c621ee6103416a8943ee416"
+    },
+    "languages/german_24l/embeddings/eve.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/eve.safetensors",
+      "sha256": "72d34ccc7c4f124d25cde1b4331def40e8cf50fa1a5c8a7331671364f94f0be4"
+    },
+    "languages/german_24l/embeddings/fantine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/fantine.safetensors",
+      "sha256": "a214c3e2ecca568a9160af75134ab848474ce1b154288b148ea8c7bf6fbd212b"
+    },
+    "languages/german_24l/embeddings/george.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/george.safetensors",
+      "sha256": "5a72e2af9f88663d8d0c5dc91bab4c4f639daa0ed0236145b234ca6fcad25d0e"
+    },
+    "languages/german_24l/embeddings/jane.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/jane.safetensors",
+      "sha256": "dce4c2f55920c15025751b4a8e8e5ee988e9c14a4ffa7617d15d5fa98dbe87a6"
+    },
+    "languages/german_24l/embeddings/javert.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/javert.safetensors",
+      "sha256": "d18798a0d30d1f09f8b219dba8bc344f45e4eebc074f0b8ed371267e4f7d7380"
+    },
+    "languages/german_24l/embeddings/jean.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/jean.safetensors",
+      "sha256": "dac764701c0e449119d7eb25ccacb6557df63133e53acba2fded552782746dae"
+    },
+    "languages/german_24l/embeddings/marius.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/marius.safetensors",
+      "sha256": "5f1eac8916357a16367008e50469cbf9dc7dc49afe4fb63391200e6373609d75"
+    },
+    "languages/german_24l/embeddings/mary.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/mary.safetensors",
+      "sha256": "ab44629656234eac2c15dacbd418a29e935019616cb748f7cdaebc84b6224c0c"
+    },
+    "languages/german_24l/embeddings/michael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/michael.safetensors",
+      "sha256": "800c1877cae884a22a04caf5576ef63aab740c0cc92d3b5e44934d9fa0f66c97"
+    },
+    "languages/german_24l/embeddings/paul.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/paul.safetensors",
+      "sha256": "a3d6b6d28ec24efa60566833321d4b4113bf38a1fa1843aee5f2273e1290cfa6"
+    },
+    "languages/german_24l/embeddings/peter_yearsley.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/peter_yearsley.safetensors",
+      "sha256": "823f15e725490b610e8bd018b82b2e243fc6e6b2096f7e8aeb56e382279a803a"
+    },
+    "languages/german_24l/embeddings/stuart_bell.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/stuart_bell.safetensors",
+      "sha256": "f7e0d664e5894d42fb6d16f648810f876169ba08e5c711759ef694f35b2dd1b1"
+    },
+    "languages/german_24l/embeddings/vera.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/german_24l/embeddings/vera.safetensors",
+      "sha256": "7a9f60ee102d7e7934c910ef979f23946c373b05ce0e7f0107b6f27e8d000514"
+    },
+    "languages/italian_24l/model.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/model.safetensors",
+      "sha256": "f469aab27f85453c8aacbc9ef467ccc48358e022828e4a050bbf6c962e8baa1f"
+    },
+    "languages/italian_24l/tokenizer.model": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/tokenizer.model",
+      "sha256": "6583b974a11b90e14d8a4c8e9c43f06c3861b9ede6e5023a4c27ab5a3a7d4c39"
+    },
+    "languages/italian_24l/embeddings/alba.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/alba.safetensors",
+      "sha256": "323a2f5757df5c003c54c34d3aaefb993d80565302683df6f9e883f8e4155d4e"
+    },
+    "languages/italian_24l/embeddings/giovanni.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/giovanni.safetensors",
+      "sha256": "3bd832fc10cfacc752956288101725626d133b456cb3c47551c2776fed6fe087"
+    },
+    "languages/italian_24l/embeddings/lola.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/lola.safetensors",
+      "sha256": "7b46ad33f31ec4f46619f16dbb6052861c114a9eba9b033504f15bae7b2b69fd"
+    },
+    "languages/italian_24l/embeddings/juergen.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/juergen.safetensors",
+      "sha256": "c98a01e032690b30fc7ab7c914338684a6feda701739a63125e49fb84f0d6749"
+    },
+    "languages/italian_24l/embeddings/rafael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/rafael.safetensors",
+      "sha256": "b61aa92012eebe3e0de858a384a0043c01628bf7205b56f55f4dfa3752841b10"
+    },
+    "languages/italian_24l/embeddings/estelle.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/estelle.safetensors",
+      "sha256": "bdbf9dd65b3872fd365851794f30074d41428299e9ae2a75f23353478282610e"
+    },
+    "languages/italian_24l/embeddings/anna.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/anna.safetensors",
+      "sha256": "79b769775905fc6308538f024945c4df826009aab899c1265814aa728e85fab2"
+    },
+    "languages/italian_24l/embeddings/azelma.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/azelma.safetensors",
+      "sha256": "bb8b885c84cf25f027b65cf59dc00d9e362d4eb83340472647608ef59369f1db"
+    },
+    "languages/italian_24l/embeddings/bill_boerst.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/bill_boerst.safetensors",
+      "sha256": "fa3f82bd776d5c6979760f81d0257cbeb07db20a3ebdd23efbc0175b62b7fa7d"
+    },
+    "languages/italian_24l/embeddings/caro_davy.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/caro_davy.safetensors",
+      "sha256": "b94a629320414ae7492147b24f4dcf613c55e6df22b0eb15b0d3bccf574f7766"
+    },
+    "languages/italian_24l/embeddings/charles.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/charles.safetensors",
+      "sha256": "031a242165fff8e9c8f4750adbe5dabe0e481c98e4fb44a9734f023d8125bcb4"
+    },
+    "languages/italian_24l/embeddings/cosette.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/cosette.safetensors",
+      "sha256": "9638432133eed16be5cd51a841910412c7939d846832bf225f8373848fb34c8a"
+    },
+    "languages/italian_24l/embeddings/eponine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/eponine.safetensors",
+      "sha256": "e105aab69178dee5cf4d09f8d532e6d25d97b3fa84ba71366628943d0f1031ca"
+    },
+    "languages/italian_24l/embeddings/eve.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/eve.safetensors",
+      "sha256": "4af73ac08e055f763553c023d15706ed0b70b718f2366e80eb11c5ab716b99e2"
+    },
+    "languages/italian_24l/embeddings/fantine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/fantine.safetensors",
+      "sha256": "009a6ff7a582e8082a39c7363dc504b812f2ba41e45e8e6f1bb47fde35783cde"
+    },
+    "languages/italian_24l/embeddings/george.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/george.safetensors",
+      "sha256": "4a38a515b74b297edcbd4b91413aefaf0cba0f77e625cadbb678cee7c361913a"
+    },
+    "languages/italian_24l/embeddings/jane.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/jane.safetensors",
+      "sha256": "7db2a66e736084ec6385baa11d499360476843d2bee8bb5f23678d16d4c795a3"
+    },
+    "languages/italian_24l/embeddings/javert.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/javert.safetensors",
+      "sha256": "2bb9683a08c65d10af9beb820bebc65190e4ee601026e7d882ab8f5627e8e762"
+    },
+    "languages/italian_24l/embeddings/jean.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/jean.safetensors",
+      "sha256": "76fdaaabc711f6f692bc09af60a2bcb96f6976c49a4f9608fa2a6140a8360ea0"
+    },
+    "languages/italian_24l/embeddings/marius.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/marius.safetensors",
+      "sha256": "647474a57af63a32243f7172ed26d0f8d8af69051eae0b606ab2ce6c72a5a292"
+    },
+    "languages/italian_24l/embeddings/mary.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/mary.safetensors",
+      "sha256": "c1db72858c30459abed015fcf768afa85edf9fd84779a00a85f025ba65448bc6"
+    },
+    "languages/italian_24l/embeddings/michael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/michael.safetensors",
+      "sha256": "ddb9751e053ce8087c760fab30a7e7926843dedc57f7c1ba6e894c31cbc1a07d"
+    },
+    "languages/italian_24l/embeddings/paul.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/paul.safetensors",
+      "sha256": "23dd4a5c1517e3fd5a7b54d16c2fe66442d80762d77ff8231f9b4cc551d3cf21"
+    },
+    "languages/italian_24l/embeddings/peter_yearsley.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/peter_yearsley.safetensors",
+      "sha256": "24d98b4ec96899d2b386c3868e3a3c27f9ac73c546012c91448e2c399b7ddbf5"
+    },
+    "languages/italian_24l/embeddings/stuart_bell.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/stuart_bell.safetensors",
+      "sha256": "dede3d55bddb07f8f5de215a19419ebb3861da20376b184242e01cc423666e77"
+    },
+    "languages/italian_24l/embeddings/vera.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/italian_24l/embeddings/vera.safetensors",
+      "sha256": "055b734607a1341b792f25c98d78c9af23f3dab0eb9e6261719865e47b9d7731"
+    },
+    "languages/portuguese_24l/model.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/model.safetensors",
+      "sha256": "b37afbc8d5ded329872f95b81f13569391b1804c8ad2d3d063305452ed65ad86"
+    },
+    "languages/portuguese_24l/tokenizer.model": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/tokenizer.model",
+      "sha256": "3aa51309c55f114771c156aaeb86f6fc325991364aa3c38af74aecf1cbd0fade"
+    },
+    "languages/portuguese_24l/embeddings/alba.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/alba.safetensors",
+      "sha256": "e3a6206c2f25b3b5a550563e4e163f7bf5e97a4ac671cf0aad5ff04d5179f9be"
+    },
+    "languages/portuguese_24l/embeddings/giovanni.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/giovanni.safetensors",
+      "sha256": "d89146f53c5beb0298710ba99b9ee7bd487a49446a8b03ddcc517c6f0a081044"
+    },
+    "languages/portuguese_24l/embeddings/lola.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/lola.safetensors",
+      "sha256": "fc06fdc643c81f47a756749bd71530300cab9c26c77f3d42d0c10e5511c2bfdf"
+    },
+    "languages/portuguese_24l/embeddings/juergen.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/juergen.safetensors",
+      "sha256": "dd9eb3db0428fb5080fe471b08bdaa84bc94a7fc2cce04a5467e5df5ad231a1b"
+    },
+    "languages/portuguese_24l/embeddings/rafael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/rafael.safetensors",
+      "sha256": "f51d1b95e3510c1a7b05efe81693cd52cdcde261464179cde8410a14b98ee5e6"
+    },
+    "languages/portuguese_24l/embeddings/estelle.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/estelle.safetensors",
+      "sha256": "b832a48fe2dcb2c4a3d45509c2b5923b23b2cae552197ac66ccc6c4058169a73"
+    },
+    "languages/portuguese_24l/embeddings/anna.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/anna.safetensors",
+      "sha256": "c3ad8d9b8213411bbb76ac0adb6cecca5778716489b618b14e5a239280a357da"
+    },
+    "languages/portuguese_24l/embeddings/azelma.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/azelma.safetensors",
+      "sha256": "2bd4dd2fdcae7790bace547f9e5f4dfc12f30a9150b0ab1d1e9fa7c2aa273e17"
+    },
+    "languages/portuguese_24l/embeddings/bill_boerst.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/bill_boerst.safetensors",
+      "sha256": "c73db388d50dd61017b27e07f674667ebcb5143745792dec2785fda668aa88cd"
+    },
+    "languages/portuguese_24l/embeddings/caro_davy.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/caro_davy.safetensors",
+      "sha256": "da23995bcf5d2241dfdbb1e01ae7354c0a5a9c26faa67933dfd80907193c11d2"
+    },
+    "languages/portuguese_24l/embeddings/charles.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/charles.safetensors",
+      "sha256": "778a6deb4048eef6fdedc332bd44db5f96724757a6f32b6530b945ff5c34ecde"
+    },
+    "languages/portuguese_24l/embeddings/cosette.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/cosette.safetensors",
+      "sha256": "ee83d39e63d24158cb04be187af7a0d8672ee70bed18fd49bf052c1d1e79cd9d"
+    },
+    "languages/portuguese_24l/embeddings/eponine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/eponine.safetensors",
+      "sha256": "3e46900c93f7c7c4c2e0907f767218ea4448aaf10883b72fcc4f17cbb5a2ca1e"
+    },
+    "languages/portuguese_24l/embeddings/eve.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/eve.safetensors",
+      "sha256": "05300e07f0abc233b74273fc2d621bdbe87543bce8a8d08d6d96d1566feac595"
+    },
+    "languages/portuguese_24l/embeddings/fantine.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/fantine.safetensors",
+      "sha256": "eb49a4df2c7089473fc75f47c0da36ac1669a05eac954838ab3ade70ff1a3218"
+    },
+    "languages/portuguese_24l/embeddings/george.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/george.safetensors",
+      "sha256": "02ab4c9b107b107e6482b55bc8e552a66ef6f7b38a3c8413493539f03a025ba2"
+    },
+    "languages/portuguese_24l/embeddings/jane.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/jane.safetensors",
+      "sha256": "845071b854f727c36d67e2afa099cea221d5a7ed1e2d2730b329422cb97e92ac"
+    },
+    "languages/portuguese_24l/embeddings/javert.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/javert.safetensors",
+      "sha256": "918450696f2511dde79ac6a79dfec88b19aa62f353d67be7694e7edf7c25e30c"
+    },
+    "languages/portuguese_24l/embeddings/jean.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/jean.safetensors",
+      "sha256": "1c94f7fbc94951814c9eab8b893539e8be6ad815bd157c08dbcb2ceebc6faba7"
+    },
+    "languages/portuguese_24l/embeddings/marius.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/marius.safetensors",
+      "sha256": "c2cc362dfdd4b1a3248ffc8fe7e2d053cd47c83ddda96d23b63e4eca48829399"
+    },
+    "languages/portuguese_24l/embeddings/mary.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/mary.safetensors",
+      "sha256": "1236428e293f88c7a1c48d6b91572b5476672d1b4b4526f4a806231921f6bdcd"
+    },
+    "languages/portuguese_24l/embeddings/michael.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/michael.safetensors",
+      "sha256": "37c3a8cd707f8695e528a090ac92cef49eef887ebb177d9a4ecac1202590315f"
+    },
+    "languages/portuguese_24l/embeddings/paul.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/paul.safetensors",
+      "sha256": "2b5975480eadd41af531ab42336e2f5f7ff3a0e5970e866d32540169096c31f9"
+    },
+    "languages/portuguese_24l/embeddings/peter_yearsley.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/peter_yearsley.safetensors",
+      "sha256": "732a601337adccf2d16df2f569d1f821129fd2556e99586377a0b550be9dcbe7"
+    },
+    "languages/portuguese_24l/embeddings/stuart_bell.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/stuart_bell.safetensors",
+      "sha256": "7747f0f4eb873e8a392d57cd0b2403b9e463511f6c0f912ece118f3856045e36"
+    },
+    "languages/portuguese_24l/embeddings/vera.safetensors": {
+      "repo": "kyutai/pocket-tts-without-voice-cloning",
+      "revision": "e81d79e8194ad4c7ce879c87a4258ef20cbf2487",
+      "file": "languages/portuguese_24l/embeddings/vera.safetensors",
+      "sha256": "b6505407c63dd50a334a11f86450ee767e59e055cbdacd5d25d248f5cd63bb4d"
+    }
+  }
 }

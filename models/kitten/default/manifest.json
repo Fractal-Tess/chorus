@@ -3,5 +3,24 @@
   "devices": [
     "cpu"
   ],
-  "artifacts": {}
+  "artifacts": {
+    "config.json": {
+      "repo": "KittenML/kitten-tts-nano-0.8",
+      "revision": "7a1db645b1f3ab9420761d87428e042b9cec3f26",
+      "file": "config.json",
+      "sha256": "b66006ccbeccd4de5fc3c9272059c47f5725df7215fd889785c03602652fab64"
+    },
+    "kitten_tts_nano_v0_8.onnx": {
+      "repo": "KittenML/kitten-tts-nano-0.8",
+      "revision": "7a1db645b1f3ab9420761d87428e042b9cec3f26",
+      "file": "kitten_tts_nano_v0_8.onnx",
+      "sha256": "320564d2615f235de972ca27a7f39551c94185cfa24ca85b07a29084135f1e5e"
+    },
+    "voices.npz": {
+      "repo": "KittenML/kitten-tts-nano-0.8",
+      "revision": "7a1db645b1f3ab9420761d87428e042b9cec3f26",
+      "file": "voices.npz",
+      "sha256": "8aa7cee235abb0739cb51e6559685f65a4dacd95568833d05699b1633f519b3f"
+    }
+  }
 }

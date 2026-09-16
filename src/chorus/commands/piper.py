@@ -12,14 +12,17 @@ def main() -> None:
     parser.add_argument("text", help="Text to synthesize")
     parser.add_argument("-o", "--output", type=Path, default=Path("piper_output.wav"))
     parser.add_argument(
-        "--model", type=Path, default=ROOT / "models/piper/en_US-lessac-medium.onnx"
+        "--model",
+        type=Path,
+        default=ROOT / "models/piper/default/en_US-lessac-medium.onnx",
     )
     args = parser.parse_args()
 
     if not args.model.is_file():
         raise FileNotFoundError(f"Piper model not found: {args.model}")
 
-    voice = PiperVoice.load(args.model, use_cuda=False)
+    config = args.model.with_name(f"{args.model.name}.json")
+    voice = PiperVoice.load(args.model, config_path=config, use_cuda=False)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with wave.open(str(args.output), "wb") as wav_file:
         voice.synthesize_wav(args.text, wav_file)
