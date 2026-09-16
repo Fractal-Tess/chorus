@@ -1,0 +1,37 @@
+# Start from an empty context and admit only runtime inputs.
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!uv.lock
+!channels.toml
+!docker/
+!docker/entrypoint.py
+!src/
+!src/**
+!static/
+!static/**
+!models/
+!models/*/
+!models/*/*/
+models/*/*/*
+!models/*/*/manifest.json
+
+# Never send local environments, caches, outputs, or model payloads.
+.git
+.git/**
+.venv
+.venv/**
+.direnv
+.direnv/**
+.cache
+.cache/**
+outputs
+outputs/**
+__pycache__
+**/__pycache__/**
+**/*.py[cod]
+**/*.safetensors
+**/*.onnx
+**/*.pth
+**/*.bin

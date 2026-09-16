@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-d97706" alt="Version 0.1.0" /></a>
-  <a href="docs/setup.md#nixos-service"><img src="https://img.shields.io/badge/NixOS-service-5277C3?logo=nixos&logoColor=white" alt="NixOS service" /></a>
+  <a href="docs/docker.md"><img src="https://img.shields.io/badge/Docker-guide-2496ED?logo=docker&logoColor=white" alt="Docker guide" /></a>
   <a href="docs/api.md"><img src="https://img.shields.io/badge/API-reference-334155" alt="API reference" /></a>
 </p>
 
@@ -34,51 +34,69 @@ Compare voices in the browser or generate speech from your own applications. Cho
 
 These are the model IDs shipped in the manifests and the channels implemented by Chorus adapters. `default` is a manifest model ID, not a claim about every upstream release. Model artifacts are fetched from pinned upstream revisions and checked by SHA-256.
 
-## Start with Kokoro
+Breeze and Fish have research/non-commercial model licenses; read their [license notes](docs/setup.md#breeze-setup) before use.
 
-Clone without model binaries, then enter the Nix development shell:
+## Start manually
+
+Clone the source without model binaries. Install Python 3.12, `uv`, Git, and the system audio tools FFmpeg, SoX, eSpeak NG, and libsndfile.
 
 ```sh
 GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Fractal-Tess/chorus.git
 cd chorus
-nix develop path:./nix
-serve-api --engines kokoro --download-missing --devices cpu,cuda:0
+uv sync --locked --python 3.12
+./bin/serve-api --engines kokoro --download-missing --devices cpu
 ```
 
-Open **[localhost:8000](http://127.0.0.1:8000)** for the console or **[localhost:8000/docs](http://127.0.0.1:8000/docs)** for interactive API documentation. `--download-missing` fetches only the selected engine's missing model artifacts.
-
-GitHub hosts source and lightweight LFS pointers, not model binaries. `--download-missing` downloads pinned weights from upstream. CUDA requires an NVIDIA driver; for CPU-only use, pass `--devices cpu` and request `"channel": "cpu"`.
-
-## Generate speech
+GitHub hosts source and lightweight LFS pointers, not model binaries. `--download-missing` downloads pinned weights from upstream. The shipped Kokoro policy defaults to GPU, so request the CPU channel explicitly:
 
 ```sh
 curl --fail-with-body http://127.0.0.1:8000/v1/audio/speech \
   -H 'Content-Type: application/json' \
-  -d '{"engine":"kokoro","channel":"gpu","input":"The room fell quiet as the first page turned.","response_format":"mp3"}' \
-  --output speech.mp3
+  -d '{"engine":"kokoro","model":"82m-v1.0","channel":"cpu","input":"A quiet test from the CPU.","response_format":"wav"}' \
+  --output kokoro-cpu.wav
 ```
 
-Only `engine` and `input` are required. An explicit GPU request never silently falls back to CPU. See the [API guide](docs/api.md#generate-audio) for voices, formats, and processing options.
+Open **[localhost:8000](http://127.0.0.1:8000)** for the console or **[localhost:8000/docs](http://127.0.0.1:8000/docs)** for interactive API documentation. See the [API guide](docs/api.md#generate-audio) for voices, formats, and processing options. An explicit GPU request never silently falls back to CPU.
 
-## Run as a NixOS service
+## Run with Docker
 
-The root flake provides `nixosModules.default`. After adding the input and importing the module, enable Kokoro:
+Build `chorus:local`, create persistent model/cache volumes, and start the image with its default Kokoro CPU configuration:
+
+```sh
+docker build -t chorus:local .
+docker volume create chorus-models
+docker volume create chorus-cache
+docker run --rm -p 127.0.0.1:8002:8000 \
+  -v chorus-models:/models -v chorus-cache:/cache chorus:local
+```
+
+Use the CPU speech request above with `http://127.0.0.1:8002/v1/audio/speech`. The [Docker guide](docs/docker.md) covers NVIDIA CUDA, CDI, bind mounts, and storage on another drive. The image installs only Chorus's main Python runtime; Breeze and Fish remain separate runtimes and are not included.
+
+## Run with Nix
+
+The development shell supplies the launcher and system audio tools:
+
+```sh
+nix develop path:./nix
+serve-api --engines kokoro --download-missing --devices cpu
+```
+
+For a persistent NixOS service, import `nixosModules.default` and configure the module:
 
 ```nix
 services.chorus = {
   enable = true;
   engines = [ "kokoro" ];
-  devices = [ "cpu" "cuda:0" ];
+  devices = [ "cpu" ];
   downloadMissing = true;
 };
 ```
 
-The service runs as a dedicated user and keeps models under `/var/lib/chorus/models` by default. Set [`modelsDirectory`](docs/setup.md#store-models-on-another-drive) to load and download models on another drive. Python dependencies are provisioned at runtime with locked `uv` dependencies, not built into the Nix closure. Follow the [complete NixOS setup](docs/setup.md#nixos-service) for the flake input, driver requirements, and service options.
-
-The API has no authentication. Keep it on localhost or behind a trusted private network. Breeze and Fish have research/non-commercial model licenses; read their [setup and license notes](docs/setup.md#breeze-setup) before use.
+See the [NixOS setup](docs/setup.md#nixos-service) for service options and the [model storage guide](docs/setup.md#store-models-on-another-drive). The API has no authentication; keep it on localhost or behind a trusted private network.
 
 ## Documentation
 
+- [Docker](docs/docker.md): image build, CPU/CUDA and CDI runs, persistent storage, and entrypoint behavior.
 - [Tutorials](docs/tutorials.md): source-only cloning, the Nix shell, selective model downloads, CPU/GPU requests, and model storage.
 - [Setup](docs/setup.md): model downloads, NVIDIA support, NixOS service, Breeze, and Fish.
 - [API and runtime](docs/api.md): engines, voices, channels, GPU queue, memory budgets, and endpoints.
