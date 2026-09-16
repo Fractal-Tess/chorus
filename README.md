@@ -164,6 +164,41 @@ English force alignment uses the permissively licensed `WAV2VEC2_ASR_BASE_960H` 
 
 Every successful speech response reports backend phase durations in milliseconds through `X-Queue-Time-Ms`, `X-Inference-Time-Ms`, `X-LavaSR-Time-Ms`, `X-Alignment-Time-Ms`, `X-Encoding-Time-Ms`, and `X-Backend-Time-Ms`. `Server-Timing` includes the same phases, and backend total includes encoding. The browser console shows synthesis and processing timing. Inference and alignment timings include lazy model loading on a cold request.
 
+## NixOS service
+
+The root flake exports `nixosModules.default` (also `nixosModules.chorus`) and `packages.x86_64-linux.chorus`. Add the input to your system flake:
+
+```nix
+inputs.chorus.url = "git+ssh://git@neo.netbird.cloud:2222/fractal-tess/chorus.git";
+```
+
+Include `chorus` in your flake's `outputs` arguments, then import the module in your existing `nixosSystem.modules`:
+
+```nix
+modules = [
+  ./configuration.nix
+  chorus.nixosModules.default
+  {
+    services.chorus = {
+      enable = true;
+      engines = [ "kokoro" ];
+      devices = [ "cpu" "cuda:0" ];
+      downloadMissing = true;
+    };
+  }
+];
+```
+
+This targets x86_64 Linux with a working NVIDIA driver. The module does not change the host's driver configuration. Rebuild your system, then check `systemctl status chorus` and `journalctl -u chorus -f`. The API and console listen on `127.0.0.1:8000` by default.
+
+Nix installs the launcher and system libraries. First startup uses `uv sync --locked` to provision Python dependencies, then downloads missing selected-engine model files before listening. **Python dependencies are provisioned at runtime, not built into the Nix closure.** First startup needs network access and several GB of disk space. State lives in `/var/lib/chorus`, models in `/var/lib/chorus/models`, and download caches in `/var/cache/chorus`; these paths are configurable. Model weights never enter the service package.
+
+Set `host = "0.0.0.0"; openFirewall = true;` to serve other machines on a trusted network. The API has no authentication; do not expose it publicly. Options also cover `port`, `preload`, `idleTimeout`, `gpuQueueSize`, RAM/VRAM budgets, and `channelConfig`. Use `environmentFile` for credentials rather than putting secrets in the Nix store. See [the module](nix/module.nix) for the full option definitions.
+
+To enable another large engine later, add `"breeze"` or `"fish"` to `engines`. The launcher provisions only the selected engines' isolated runtimes, using their pinned upstream commits. Their model licenses restrict commercial use; read the [Breeze](#breeze-setup) and [Fish](#fish-setup) notes first.
+
+Kokoro was verified under systemd's non-root service sandbox on an RTX 3090, including CUDA synthesis and a cached restart with external network access denied.
+
 ## Development
 
 Dependencies are locked in `uv.lock` and synchronized when the development shell opens. `.envrc` watches the Python dependency files and uses an explicit `path:` reference to `nix/`; model weights are not copied into the Nix flake source snapshot.
