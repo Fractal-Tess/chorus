@@ -71,6 +71,55 @@ To enable another large engine later, add `"breeze"` or `"fish"` to `engines`. T
 
 Kokoro was verified under systemd's non-root service sandbox on an RTX 3090, including CUDA synthesis and a cached restart with external network access denied.
 
+### Store models on another drive
+
+Set the destination in your NixOS configuration:
+
+```nix
+services.chorus = {
+  enable = true;
+  engines = [ "kokoro" ];
+  devices = [ "cpu" "cuda:0" ];
+  modelsDirectory = "/mnt/vault/ai/chorus/models";
+  downloadMissing = true;
+};
+```
+
+Both model loading and missing-model downloads use `modelsDirectory`. The
+launcher installs the catalog manifests there and downloads weights into
+`<directory>/<engine>/<model>/`. Download URLs still come from the pinned
+upstream manifests; this option changes the local destination, not the source.
+
+Configure the drive's mount in NixOS `fileSystems` first. Chorus requires the
+mounts containing its model, state, and cache directories. A preparation unit
+creates the directories as `chorus:chorus` with mode `0750` after mounting and
+before the sandboxed API starts, including when the mount is marked `nofail`.
+If the configured mount fails, Chorus does not start and download onto the
+underlying root filesystem.
+
+Use an absolute path without spaces, such as `/mnt/vault/ai/chorus/models`.
+Avoid `/home`, `/root`, and `/run/user`: the service deliberately hides home
+directories. `cacheDirectory` independently controls download and runtime
+caches; `stateDirectory` controls the application and Python environments.
+Changing only `modelsDirectory` leaves both at their defaults.
+
+Changing the option does not move existing weights. Either let
+`downloadMissing` populate the new directory, or stop Chorus and copy the
+existing catalog before rebuilding:
+
+```sh
+sudo systemctl stop chorus
+sudo install -d -o chorus -g chorus -m 0750 /mnt/vault/ai/chorus/models
+sudo rsync -a --chown=chorus:chorus /var/lib/chorus/models/ /mnt/vault/ai/chorus/models/
+# Rebuild using your system flake, then:
+sudo systemctl start chorus
+journalctl -u chorus -n 30
+```
+
+Confirm the drive is mounted before copying. Keep the old files until the new
+configuration has generated speech successfully. With `downloadMissing = false`,
+missing or incomplete model files fail startup instead of triggering a download.
+
 ## Breeze setup
 
 [Breeze TTS 2](https://github.com/breezeblue-ai/breeze-tts) uses a separate environment under `runtimes/breeze/`: CUDA PyTorch 2.9.1, NumPy 2, Transformers, and the Qwen audio codec. Its inference source is a pinned Git submodule. The shared API keeps one worker alive per selected model/device and closes workers at shutdown.

@@ -21,7 +21,7 @@ let
 
   engineType = lib.types.enum supportedEngines;
 
-  # Paths are also used in tmpfiles rules, which have their own quoting syntax.
+  # Keep service-managed directories normalized and safe for systemd paths.
   validDirectory =
     path:
     lib.hasPrefix "/" path
@@ -138,9 +138,8 @@ in
       type = lib.types.str;
       default = "/var/lib/chorus";
       description = ''
-        Writable persistent state directory.  The default is the canonical
-        systemd state path; model manifests and the mutable application live
-        below this directory.
+        Writable persistent state directory containing the mutable application
+        and its Python environments. Models use modelsDirectory.
       '';
     };
 
@@ -156,7 +155,13 @@ in
       type = lib.types.str;
       default = "${cfg.stateDirectory}/models";
       defaultText = lib.literalExpression "config.services.chorus.stateDirectory + \"/models\"";
-      description = "Writable model catalog and weights directory (defaults to stateDirectory/models).";
+      example = "/mnt/models/chorus";
+      description = ''
+        Writable model catalog and weights directory, used both when loading
+        models and when downloadMissing fetches missing artifacts. Changing
+        this path does not move existing weights. The service waits for the
+        filesystem containing this directory before starting.
+      '';
     };
 
     idleTimeout = lib.mkOption {
@@ -295,18 +300,48 @@ in
       description = "Chorus service user";
     };
 
-    systemd.tmpfiles.rules = [
-      "d ${cfg.stateDirectory} 0750 chorus chorus -"
-      "d ${cfg.stateDirectory}/application 0750 chorus chorus -"
-      "d ${cfg.cacheDirectory} 0750 chorus chorus -"
-      "d ${cfg.modelsDirectory} 0750 chorus chorus -"
-    ];
+    # Prepare directories after their mounts, including late/no-fail mounts.
+    # Global boot-time tmpfiles can otherwise create them on the underlying disk.
+    systemd.services.chorus-prepare = {
+      description = "Prepare Chorus storage directories";
+      before = [ "chorus.service" ];
+      unitConfig.RequiresMountsFor = [
+        cfg.stateDirectory
+        cfg.cacheDirectory
+        cfg.modelsDirectory
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = utils.escapeSystemdExecArgs [
+          "${pkgs.coreutils}/bin/install"
+          "-d"
+          "-m0750"
+          "-o"
+          "chorus"
+          "-g"
+          "chorus"
+          cfg.stateDirectory
+          "${cfg.stateDirectory}/application"
+          cfg.cacheDirectory
+          cfg.modelsDirectory
+        ];
+      };
+    };
 
     systemd.services.chorus = {
       description = "Chorus multi-engine TTS API";
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
-      after = [ "network-online.target" ];
+      requires = [ "chorus-prepare.service" ];
+      after = [
+        "network-online.target"
+        "chorus-prepare.service"
+      ];
+      unitConfig.RequiresMountsFor = [
+        cfg.stateDirectory
+        cfg.cacheDirectory
+        cfg.modelsDirectory
+      ];
       path = [
         pkgs.uv
         pkgs.ffmpeg
