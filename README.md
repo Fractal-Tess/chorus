@@ -22,13 +22,15 @@ Compare voices in the browser or generate speech from your own applications. Cho
 
 | Engine | Model/version | CPU | GPU (CUDA) |
 | --- | --- | :---: | :---: |
-| Pocket TTS | `default` | Yes | No |
-| Kokoro | `82m-v1.0` | Yes | Yes |
-| Piper | `default` (`en_US-lessac-medium`) | Yes | No |
-| Kitten TTS | `default` (`kitten-tts-nano-0.8`) | Yes | No |
-| Supertonic 3 | `default` (`supertonic-3`) | Yes | No |
-| Breeze TTS 2 | `tts-2` | No | Yes |
-| Fish Audio S2-Pro | `s2-pro` | No | Yes |
+| Pocket TTS | `default` | ✅ | ❌ |
+| Kokoro | `82m-v1.0` | ✅ | ✅ |
+| Piper | `default` (`en_US-lessac-medium`) | ✅ | ❌ |
+| Kitten TTS | `default` (`kitten-tts-nano-0.8`) | ✅ | ❌ |
+| Supertonic 3 | `default` (`supertonic-3`) | ✅ | ❌ |
+| Breeze TTS 2 | `tts-2` | ❌ | ✅ |
+| Fish Audio S2-Pro | `s2-pro` | ❌ | ✅ |
+
+✅ Supported · ❌ Not supported
 
 These are the model IDs shipped in the manifests and the channels implemented by Chorus adapters. `default` is a manifest model ID, not a claim about every upstream release. Model artifacts are fetched from pinned upstream revisions and checked by SHA-256.
 
