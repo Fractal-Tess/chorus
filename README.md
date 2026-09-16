@@ -60,7 +60,7 @@ Omitting `channel` uses the model's default. An explicit or configured GPU reque
 
 The shared FIFO queue assigns a physical GPU only when a slot opens, avoiding requests stranded behind a busy GPU while another is free. Dispatch prefers the least-busy GPU, then an already-warm model. Kokoro overlaps two runs per GPU in one ONNX session; other GPU engines run exclusively on their selected GPU. No microbatching or extra model replicas are used. A full queue returns HTTP 429 with `Retry-After: 1`; clients control whether to retry.
 
-On two RTX 3090s, warm Bella MP3 trials completed 510 requests without errors. Eight concurrent clients measured 9.68 requests/s and 800 ms median latency; 32 measured 9.91 requests/s and 3.17 s. More waiting slots absorb bursts, but do not remove CPU-side STFT work or increase GPU compute capacity. Start with 4–8 concurrent clients and leave queue capacity at 32.
+Start with 4–8 concurrent clients and leave queue capacity at 32. More waiting slots absorb bursts, but do not increase inference capacity. The [Kokoro measurements](#kokoro-gpu-measurement) show 23.5 requests/s at saturation and a steady 20 requests/s without growing backlog on two RTX 3090s.
 
 ### Memory and idle unloading
 
@@ -185,18 +185,25 @@ Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests li
 
 ### Kokoro GPU measurement
 
-On an RTX 3090 with ONNX Runtime 1.26, five warm inference runs gave median latencies of 94 ms for 3.125 seconds of speech and 295 ms for 10.725 seconds. CPU medians on the Ryzen 7 2700 (four ONNX threads) were 1,513 ms and 5,214 ms. These exclude model loading, text processing, WAV encoding, and optional processing. An HTTP smoke request including text processing and WAV encoding took 101 ms warm.
+Moving Kokoro's short STFT from CPU to CUDA increased warm MP3 throughput **2.27×**, without additional model replicas. The adapter preserves ONNX Runtime 1.26's float32 Bluestein FFT operation order. A simpler, mathematically equivalent DFT changed near-zero signs and caused large downstream phase differences.
 
-CUDA profiling recorded 1,895 GPU nodes and 182 CPU nodes. Some operations, including STFT and indexing, still use CPU. Heuristic convolution selection performed as well as exhaustive selection without extra tuning work. The upstream FP16 candidate produced non-finite audio and was not selected.
+The original `model.onnx` and learned weights remain unchanged. Each CUDA worker loads a temporary derived graph, then deletes it after session initialization. This avoids retaining a second serialized copy of the weights in RAM. CPU execution keeps the original graph.
 
-Across two RTX 3090s, overlapping requests and automatic GPU routing increased warm MP3 throughput from 6.7 to 9.9 requests per second. The measurement used Kokoro `af_bella`, a 9.875-second English passage, and no optional processing on the Ryzen 7 2700:
+Matched 60-second trials used eight concurrent clients, two RTX 3090s, a Ryzen 7 2700, ONNX Runtime 1.26, and `af_bella` producing 9.875 seconds of English speech per MP3. Model loading and warmup are excluded; throughput includes queue drain. Optional processing was disabled.
 
-| Concurrent requests | Before, requests/s | Now, requests/s | Now, median HTTP latency |
-| --- | ---: | ---: | ---: |
-| 4 | 6.64 | 9.15 | 422 ms |
-| 8 | 6.70 | 9.82 | 797 ms |
+| Measurement | Original graph | GPU FFT |
+| --- | ---: | ---: |
+| Completed requests/s | 10.36 | 23.52 |
+| Median HTTP latency | 765 ms | 333 ms |
+| p95 HTTP latency | 887 ms | 409 ms |
+| Mean GPU utilization, GPU 0 / GPU 1 | 40% / 38% | 84% / 93% |
+| Chorus VRAM per GPU | 1.30 GiB | 1.30 GiB |
 
-The 15-second trials completed 677 requests across six load settings with no errors. Twelve concurrent requests reached 9.91 requests/s but raised median latency to 1.18 seconds. Use four concurrent requests for lower latency or eight for throughput, with `channel: "gpu"`. The FP32 graph and weights are unchanged. CPU STFT remains a bottleneck; the gain comes from overlapping independent requests, not making a single request 48% faster.
+All 628 original-graph and 1,418 optimized-graph requests succeeded. A separate fixed-rate trial completed 1,200/1,200 requests at 20 requests/s, with 227 ms median latency, 292 ms p95, and no growing queue. After reducing graph-loading memory, another 600 requests at 20 requests/s passed; the two GPU workers used 3.16 GiB of RAM in total.
+
+The FFT replacement matched the original CPU operation bit-for-bit on captured speech and synthetic inputs. Full-model checks covered Bella, Heart, Adam, and speeds from 0.5 to 2.0. Deterministic cases matched exactly or at float32 rounding noise. Longer CUDA outputs have pre-existing run-to-run variation, confirmed with repeated original-graph runs rather than assuming every difference came from the optimization. Regression checks run with `.venv/bin/python -m unittest discover -s tests`.
+
+Utilization is board-wide, including the desktop on GPU 1. During saturation, GPU 1 reached 87°C and reported thermal throttling. Cooling can limit peak throughput. Extra ONNX sessions did not improve throughput after the FFT change, so workers still share one session per GPU. Longer passages and optional processing change these rates.
 
 ### Breeze setup
 

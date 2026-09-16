@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+from contextlib import nullcontext
 
 import numpy as np
 import onnxruntime as ort
@@ -46,10 +47,18 @@ class Adapter(Engine):
                     },
                 ),
             )
-        self.session = ort.InferenceSession(
-            str(spec.artifact("model.onnx")), sess_options=options, providers=providers
-        )
-        self.session.disable_fallback()
+        model = spec.artifact("model.onnx")
+        if device.startswith("cuda:"):
+            from chorus.engines.kokoro_fft import cuda_model
+
+            model_context = cuda_model(model)
+        else:
+            model_context = nullcontext(str(model))
+        with model_context as source:
+            self.session = ort.InferenceSession(
+                source, sess_options=options, providers=providers
+            )
+            self.session.disable_fallback()
         if (
             device.startswith("cuda:")
             and "CUDAExecutionProvider" not in self.session.get_providers()

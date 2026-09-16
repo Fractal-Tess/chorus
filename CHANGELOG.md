@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Moved Kokoro's 20-sample STFT to CUDA while preserving ONNX Runtime's float32 FFT rounding and phase behavior. Matched dual-RTX-3090 MP3 trials improved from 10.36 to 23.52 requests/s, with GPU utilization rising from 40%/38% to 84%/93% and no additional model replicas. Added exact FFT regression coverage; original weights and CPU execution remain unchanged. Derived graphs are discarded after loading rather than retained as duplicate serialized weights.
 - Replaced speech device selection with CPU/GPU channels, strict per-model `channels.toml` policies, a console channel selector, and read-only policy/physical diagnostics. Added a CPU/GPU engine support table. Requests now use `channel` instead of `device`; defaults are per model rather than `--default-device`.
 - Added a bounded FIFO GPU queue with 32 waiting slots by default, configurable through `--gpu-queue-size`. Requests choose a physical GPU only when a slot opens; Kokoro shares two execution slots per GPU while other GPU engines run exclusively. Overflow returns HTTP 429 with `Retry-After`, and resource diagnostics expose queue occupancy.
 - Increased Kokoro CUDA throughput by overlapping two requests in each shared ONNX session and using private, framed binary worker connections. Dual-RTX-3090 warm MP3 throughput increased from 6.7 to 9.9 requests/s without duplicating model weights; CPU and other engine workers remain serialized.
