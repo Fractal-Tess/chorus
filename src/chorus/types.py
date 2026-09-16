@@ -2,8 +2,41 @@ from __future__ import annotations
 
 import io
 import subprocess
+import wave
 from dataclasses import dataclass, field
 from typing import Any, Literal
+
+
+def _encode_mp3(wav: bytes) -> bytes:
+    try:
+        import lameenc
+    except ImportError as error:
+        raise RuntimeError("lameenc is required for MP3 responses") from error
+
+    try:
+        with wave.open(io.BytesIO(wav), "rb") as source:
+            channels = source.getnchannels()
+            sample_rate = source.getframerate()
+            sample_width = source.getsampwidth()
+            pcm = source.readframes(source.getnframes())
+    except (EOFError, wave.Error) as error:
+        raise RuntimeError("MP3 encoding requires a valid WAV input") from error
+    if sample_width != 2 or channels not in (1, 2):
+        raise RuntimeError("MP3 encoding requires mono or stereo PCM16 WAV input")
+
+    encoder = lameenc.Encoder()
+    encoder.set_in_sample_rate(sample_rate)
+    encoder.set_out_sample_rate(sample_rate)
+    encoder.set_channels(channels)
+    encoder.set_bit_rate(128)
+    # Match FFmpeg's observed LAME quality for this 128 kbps path.
+    encoder.set_quality(3)
+    encoded = encoder.encode(pcm)
+    encoded.extend(encoder.flush())
+    if not encoded:
+        raise RuntimeError("MP3 encoding produced no output")
+    return bytes(encoded)
+
 
 ResponseFormat = Literal["wav", "mp3", "flac", "opus"]
 AUDIO_MEDIA_TYPES = {
@@ -51,8 +84,9 @@ def encode_response(
     """Encode final PCM audio; return bytes and the output decoding sample rate."""
     if response_format == "wav":
         return audio.wav, audio.sample_rate
+    if response_format == "mp3":
+        return _encode_mp3(audio.wav), audio.sample_rate
     options = {
-        "mp3": ["-c:a", "libmp3lame", "-b:a", "128k", "-f", "mp3"],
         "flac": ["-c:a", "flac", "-f", "flac"],
         "opus": [
             "-c:a",
@@ -96,9 +130,7 @@ def encode_response(
             timeout=120,
         )
     except FileNotFoundError as error:
-        raise RuntimeError(
-            "FFmpeg is required for MP3, FLAC, and Opus responses"
-        ) from error
+        raise RuntimeError("FFmpeg is required for FLAC and Opus responses") from error
     except subprocess.TimeoutExpired as error:
         raise RuntimeError("Audio encoding timed out") from error
     if result.returncode or not result.stdout:

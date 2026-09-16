@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes
 import json
 import threading
 from contextlib import nullcontext
@@ -24,6 +25,36 @@ LANGUAGES = {
 }
 
 
+def _configure_cuda_wait(device_id: int) -> None:
+    """Let CPU threads sleep while their CUDA work finishes, rather than spin."""
+    driver = ctypes.CDLL("libcuda.so.1")
+    driver.cuInit.argtypes = [ctypes.c_uint]
+    driver.cuDevicePrimaryCtxGetState.argtypes = [
+        ctypes.c_int,
+        ctypes.POINTER(ctypes.c_uint),
+        ctypes.POINTER(ctypes.c_int),
+    ]
+    driver.cuDevicePrimaryCtxSetFlags_v2.argtypes = [ctypes.c_int, ctypes.c_uint]
+
+    def check(result: int) -> None:
+        if result:
+            raise RuntimeError(
+                f"Cannot configure CUDA synchronization on cuda:{device_id}: "
+                f"driver error {result}"
+            )
+
+    check(driver.cuInit(0))
+    flags, active = ctypes.c_uint(), ctypes.c_int()
+    check(
+        driver.cuDevicePrimaryCtxGetState(
+            device_id, ctypes.byref(flags), ctypes.byref(active)
+        )
+    )
+    # Replace only CU_CTX_SCHED_MASK with CU_CTX_SCHED_BLOCKING_SYNC.
+    # This changes host waiting, not GPU kernels, precision, or hardware settings.
+    check(driver.cuDevicePrimaryCtxSetFlags_v2(device_id, (flags.value & ~7) | 4))
+
+
 class Adapter(Engine):
     def __init__(self, spec, device: str):
         super().__init__(spec, device)
@@ -36,12 +67,14 @@ class Adapter(Engine):
         providers = ["CPUExecutionProvider"]
         if device.startswith("cuda:"):
             ort.preload_dlls(directory="")
+            device_id = int(device.split(":")[1])
+            _configure_cuda_wait(device_id)
             providers.insert(
                 0,
                 (
                     "CUDAExecutionProvider",
                     {
-                        "device_id": int(device.split(":")[1]),
+                        "device_id": device_id,
                         "cudnn_conv_algo_search": "HEURISTIC",
                         "cudnn_conv1d_pad_to_nc1d": "1",
                     },

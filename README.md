@@ -60,7 +60,7 @@ Omitting `channel` uses the model's default. An explicit or configured GPU reque
 
 The shared FIFO queue assigns a physical GPU only when a slot opens, avoiding requests stranded behind a busy GPU while another is free. Dispatch prefers the least-busy GPU, then an already-warm model. Kokoro overlaps two runs per GPU in one ONNX session; other GPU engines run exclusively on their selected GPU. No microbatching or extra model replicas are used. A full queue returns HTTP 429 with `Retry-After: 1`; clients control whether to retry.
 
-Start with 4–8 concurrent clients and leave queue capacity at 32. More waiting slots absorb bursts, but do not increase inference capacity. The [Kokoro measurements](#kokoro-gpu-measurement) show 23.5 requests/s at saturation and a steady 20 requests/s without growing backlog on two RTX 3090s.
+Start with 4–8 concurrent clients and leave queue capacity at 32. More waiting slots absorb bursts, but do not increase inference capacity. The [Kokoro measurements](#kokoro-gpu-measurement) show about 23 requests/s at saturation and a steady 20 requests/s without growing backlog on two RTX 3090s.
 
 ### Memory and idle unloading
 
@@ -122,7 +122,7 @@ Only `engine` and `input` are required. Set `lava_sr` to `true` to post-process 
 
 Optional `model` and `channel` fields select a model version and execution channel, for example `"model": "82m-v1.0", "channel": "gpu"`. Responses report `X-TTS-Model` and `X-TTS-Channel`; `X-TTS-Device` identifies the physical device for diagnostics. The old request `device` field and `auto` channel are not accepted. Enhancement runs before alignment so word timestamps match the returned audio.
 
-Set `response_format` to choose the output. WAV is the default and needs no encoder process; the other formats use the bundled FFmpeg after enhancement and alignment.
+Set `response_format` to choose the output. WAV is returned directly. MP3 uses the bundled LAME encoder through `lameenc`, without starting a subprocess. FLAC and Opus use FFmpeg. Encoding runs after enhancement and alignment.
 
 | `response_format` | Output | Content type |
 | --- | --- | --- |
@@ -131,7 +131,7 @@ Set `response_format` to choose the output. WAV is the default and needs no enco
 | `flac` | Lossless FLAC | `audio/flac` |
 | `opus` | Ogg Opus at 64 kbps, 48 kHz | `audio/ogg` |
 
-For example, send `"response_format": "mp3"` and save the response as `speech.mp3`. `Content-Disposition` supplies the matching extension; `X-Sample-Rate` reports the output decoding rate. `X-Audio-Duration` and alignment timestamps describe the generated speech before encoding; MP3 can add a small amount of codec delay and padding. Unsupported formats return HTTP 422. Outside the Nix shell, install FFmpeg with `libmp3lame`, `flac`, and `libopus` encoders.
+For example, send `"response_format": "mp3"` and save the response as `speech.mp3`. `Content-Disposition` supplies the matching extension; `X-Sample-Rate` reports the output decoding rate. `X-Audio-Duration` and alignment timestamps describe the generated speech before encoding; MP3 can add a small amount of codec delay and padding. Unsupported formats return HTTP 422. Outside the Nix shell, install FFmpeg with `flac` and `libopus` encoders for those formats; MP3 needs only the Python dependencies.
 
 ## API
 
@@ -185,25 +185,24 @@ Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests li
 
 ### Kokoro GPU measurement
 
-Moving Kokoro's short STFT from CPU to CUDA increased warm MP3 throughput **2.27×**, without additional model replicas. The adapter preserves ONNX Runtime 1.26's float32 Bluestein FFT operation order. A simpler, mathematically equivalent DFT changed near-zero signs and caused large downstream phase differences.
+Kokoro produces about **23 MP3 requests/s** on two RTX 3090s. Moving its short STFT from CPU to CUDA raised an earlier matched result from 10.36 to 23.52 requests/s, without extra model replicas or reduced precision. The adapter preserves ONNX Runtime 1.26's float32 Bluestein FFT operation order; an approximate DFT changed near-zero signs and caused downstream phase errors.
 
 The original `model.onnx` and learned weights remain unchanged. Each CUDA worker loads a temporary derived graph, then deletes it after session initialization. This avoids retaining a second serialized copy of the weights in RAM. CPU execution keeps the original graph.
 
-Matched 60-second trials used eight concurrent clients, two RTX 3090s, a Ryzen 7 2700, ONNX Runtime 1.26, and `af_bella` producing 9.875 seconds of English speech per MP3. Model loading and warmup are excluded; throughput includes queue drain. Optional processing was disabled.
+Native MP3 encoding removes process startup overhead. CUDA workers also block their CPU threads while waiting for GPU work, instead of spinning. Matched 60-second trials at **20 requests/s** measured the following changes on a Ryzen 7 2700, using `af_bella`, 9.875 seconds of speech per MP3, warm models, and no optional processing:
 
-| Measurement | Original graph | GPU FFT |
+| Measurement at 20 requests/s | Before | Now |
 | --- | ---: | ---: |
-| Completed requests/s | 10.36 | 23.52 |
-| Median HTTP latency | 765 ms | 333 ms |
-| p95 HTTP latency | 887 ms | 409 ms |
-| Mean GPU utilization, GPU 0 / GPU 1 | 40% / 38% | 84% / 93% |
-| Chorus VRAM per GPU | 1.30 GiB | 1.30 GiB |
+| Median HTTP latency | 244 ms | 195 ms |
+| p95 HTTP latency | 302 ms | 250 ms |
+| Mean MP3 encoding time | 89 ms | 42 ms |
+| Mean Chorus CPU use, logical cores | 4.64 | 2.50 |
 
-All 628 original-graph and 1,418 optimized-graph requests succeeded. A separate fixed-rate trial completed 1,200/1,200 requests at 20 requests/s, with 227 ms median latency, 292 ms p95, and no growing queue. After reducing graph-loading memory, another 600 requests at 20 requests/s passed; the two GPU workers used 3.16 GiB of RAM in total.
+Both trials completed 1,200/1,200 requests without growing backlog. CPU use includes the API, its encoder subprocesses before the change, and both model workers. Peak throughput did not improve: separate eight-client trials measured 23.26 requests/s before and 23.04 after, including queue drain. These changes reduce latency and CPU cost rather than GPU inference time.
 
-The FFT replacement matched the original CPU operation bit-for-bit on captured speech and synthetic inputs. Full-model checks covered Bella, Heart, Adam, and speeds from 0.5 to 2.0. Deterministic cases matched exactly or at float32 rounding noise. Longer CUDA outputs have pre-existing run-to-run variation, confirmed with repeated original-graph runs rather than assuming every difference came from the optimization. Regression checks run with `.venv/bin/python -m unittest discover -s tests`.
+The FFT replacement matched the original CPU operation on captured speech and synthetic inputs. Full-model checks covered Bella, Heart, Adam, and speeds from 0.5 to 2.0; longer CUDA outputs have pre-existing run-to-run variation. Native 128 kbps MP3 decoded to exactly the same PCM as the former FFmpeg path in speech and synthetic checks at 22.05, 24, 44.1, and 48 kHz, including stereo and short clips. Regression checks run with `.venv/bin/python -m unittest discover -s tests`.
 
-Utilization is board-wide, including the desktop on GPU 1. During saturation, GPU 1 reached 87°C and reported thermal throttling. Cooling can limit peak throughput. Extra ONNX sessions did not improve throughput after the FFT change, so workers still share one session per GPU. Longer passages and optional processing change these rates.
+GPU 1 reached 88°C and reported thermal throttling during the latest fixed-rate run. Cooling can limit peak throughput. Extra ONNX sessions and higher shared-session concurrency did not produce a convincing gain, so workers still share one session with two execution slots per GPU. Different passage lengths, optional processing, and other workstation activity change these rates.
 
 ### Breeze setup
 
