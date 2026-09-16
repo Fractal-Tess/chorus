@@ -29,6 +29,28 @@ Standalone Python commands live in `src/chorus/commands/`, their shell launchers
 
 Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device. Kokoro CUDA workers overlap up to two requests in one ONNX session without duplicating model weights; CPU and other engine workers serialize requests. Additional requests wait for a slot. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 
+## Publishing source without model binaries
+
+The maintainer checkout uses `origin` for Gitadel and `github` for the public
+source repository. GitHub receives normal Git commits, including lightweight
+LFS pointers, but no LFS objects:
+
+```sh
+git push origin main
+GIT_LFS_SKIP_PUSH=1 git push github main
+```
+
+Keep Gitadel as the LFS destination. In a maintainer checkout, configure
+`remote.github.lfsurl` and `remote.github.lfspushurl` to use the Gitadel remote
+URL, and check `git lfs env` before publishing. These are local Git settings;
+they are not inherited by new clones. Public users should clone with
+`GIT_LFS_SKIP_SMUDGE=1` and use `--download-missing`, as shown in the
+[tutorials](tutorials.md#clone-source-without-model-weights).
+
+Do not run `git lfs push --all` against GitHub or upload model archives to
+GitHub releases. Model usage and redistribution remain governed by upstream
+licenses.
+
 ## Kokoro GPU measurement
 
 Kokoro produces about **23 MP3 requests/s** on two RTX 3090s. Moving its short STFT from CPU to CUDA raised an earlier matched result from 10.36 to 23.52 requests/s, without extra model replicas or reduced precision. The adapter preserves ONNX Runtime 1.26's float32 Bluestein FFT operation order; an approximate DFT changed near-zero signs and caused downstream phase errors.

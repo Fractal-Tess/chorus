@@ -30,7 +30,7 @@ Existing complete files are left untouched. Downloads use pinned revisions from 
 
 Breeze and Fish also require their isolated runtime setup below. `--download-missing` downloads model assets, not Python environments or upstream source checkouts; missing runtime files produce the corresponding setup commands. `serve-api --fetch-model kokoro/82m-v1.0` remains available for explicit model-only fetching.
 
-For a new clone, set `GIT_LFS_SKIP_SMUDGE=1` when cloning if you only want selected engines' weights, then use `--download-missing` or a scoped `git lfs pull --include="models/kokoro/**"`. LFS keeps every committed weight version; remote storage and download quotas still apply.
+For a GitHub clone, use `GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Fractal-Tess/chorus.git`, then `--download-missing`. GitHub contains lightweight LFS pointers but does not host the model binaries. The project's LFS objects remain in Gitadel; a scoped `git lfs pull --include="models/kokoro/**"` is only useful for a clone connected to that LFS server. Public users can download selected models directly from the pinned upstream manifests without Gitadel access.
 
 `--devices` sets the physical hardware pool; speech requests choose a CPU or GPU channel rather than a GPU number. `--preload kokoro/82m-v1.0` warms a selected model on its configured default channel after the file checks. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
 
@@ -41,7 +41,7 @@ CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The envir
 The root flake exports `nixosModules.default` (also `nixosModules.chorus`) and `packages.x86_64-linux.chorus`. Add the input to your system flake:
 
 ```nix
-inputs.chorus.url = "git+ssh://git@neo.netbird.cloud:2222/fractal-tess/chorus.git";
+inputs.chorus.url = "github:Fractal-Tess/chorus";
 ```
 
 Include `chorus` in your flake's `outputs` arguments, then import the module in your existing `nixosSystem.modules`:
