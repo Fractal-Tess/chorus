@@ -87,7 +87,8 @@ export LD_LIBRARY_PATH="/run/opengl-driver/lib:@libraryPath@${LD_LIBRARY_PATH:+:
 # Keep source updates clean while retaining mutable environments and the large
 # downloaded upstream checkouts.  The source closure contains manifests only,
 # never model weights; the model tree is synced independently below.
-"@rsync@/bin/rsync" -a --delete --chmod=u+w --no-owner --no-group \
+# Nix normalizes timestamps, so equal-sized revisions need a content comparison.
+"@rsync@/bin/rsync" -a --checksum --delete --chmod=u+w --no-owner --no-group \
     --exclude='.venv/***' --exclude='upstream/***' --exclude='models/***' \
     "$STORE_SOURCE/" "$application/"
 

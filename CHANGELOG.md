@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 2026-09-17
+
+- Compare source contents during NixOS upgrades so equal-sized files with normalized Nix timestamps are refreshed, including package version metadata.
+
 ## 0.1.1 - 2026-09-17
 
 - Keep idle model workers loaded for 30 minutes by default; retain configurable timeouts through `--idle-timeout` and `services.chorus.idleTimeout`.

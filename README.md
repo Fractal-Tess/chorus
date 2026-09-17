@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.1-d97706" alt="Version 0.1.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.2-d97706" alt="Version 0.1.2" /></a>
   <a href="docs/docker.md"><img src="https://img.shields.io/badge/Docker-guide-2496ED?logo=docker&logoColor=white" alt="Docker guide" /></a>
   <a href="docs/api.md"><img src="https://img.shields.io/badge/API-reference-334155" alt="API reference" /></a>
 </p>
