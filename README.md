@@ -70,7 +70,7 @@ docker run --rm -p 127.0.0.1:8002:8000 \
   -v chorus-models:/models -v chorus-cache:/cache chorus:local
 ```
 
-Use the CPU speech request above with `http://127.0.0.1:8002/v1/audio/speech`. The [Docker guide](docs/docker.md) covers NVIDIA CUDA, CDI, bind mounts, and storage on another drive. The image installs only Chorus's main Python runtime; Breeze and Fish remain separate runtimes and are not included.
+Use the CPU speech request above with `http://127.0.0.1:8002/v1/audio/speech`. The [Docker guide](docs/docker.md) covers NVIDIA CUDA, CDI, bind mounts, and ordered model roots. The image installs only Chorus's main Python runtime; Breeze and Fish remain separate runtimes and are not included.
 
 ## Run with Nix
 

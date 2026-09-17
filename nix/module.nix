@@ -28,6 +28,7 @@ let
     && lib.all (part: part != "." && part != ".." && builtins.match "[A-Za-z0-9._-]+" part != null) (
       lib.tail (lib.splitString "/" path)
     );
+  primaryModelsDirectories = lib.take 1 cfg.modelsDirectories;
 
   deviceIsValid = device: device == "cpu" || builtins.match "cuda:[0-9]+" device != null;
 
@@ -67,7 +68,7 @@ let
     CHORUS_STATE_DIR = cfg.stateDirectory;
     CHORUS_CACHE_DIR = cfg.cacheDirectory;
     CHORUS_ENGINES = lib.concatStringsSep "," cfg.engines;
-    CHORUS_MODELS_DIR = cfg.modelsDirectory;
+    CHORUS_MODELS_DIRS = lib.concatStringsSep ":" cfg.modelsDirectories;
     # Keep transient files and model/download caches inside the explicitly
     # writable service paths.  PrivateTmp additionally isolates /tmp.
     TMPDIR = "/run/chorus";
@@ -139,7 +140,7 @@ in
       default = "/var/lib/chorus";
       description = ''
         Writable persistent state directory containing the mutable application
-        and its Python environments. Models use modelsDirectory.
+        and its Python environments. Models use modelsDirectories.
       '';
     };
 
@@ -151,16 +152,19 @@ in
         systemd cache path; all transient/download caches are confined here.
       '';
     };
-    modelsDirectory = lib.mkOption {
-      type = lib.types.str;
-      default = "${cfg.stateDirectory}/models";
-      defaultText = lib.literalExpression "config.services.chorus.stateDirectory + \"/models\"";
-      example = "/mnt/models/chorus";
+    modelsDirectories = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "${cfg.stateDirectory}/models" ];
+      defaultText = lib.literalExpression "[ (config.services.chorus.stateDirectory + \"/models\") ]";
+      example = [
+        "/mnt/models/chorus"
+        "/var/lib/chorus/models"
+      ];
       description = ''
-        Writable model catalog and weights directory, used both when loading
-        models and when downloadMissing fetches missing artifacts. Changing
-        this path does not move existing weights. The service waits for the
-        filesystem containing this directory before starting.
+        Ordered model catalog and weights directories. Models are loaded from
+        the first directory containing a complete copy; missing models are
+        downloaded only to the first directory. The service waits for all
+        configured filesystems before starting.
       '';
     };
 
@@ -258,8 +262,16 @@ in
         message = "services.chorus.cacheDirectory must be a normalized absolute path using letters, digits, dots, underscores, and hyphens.";
       }
       {
-        assertion = validDirectory cfg.modelsDirectory;
-        message = "services.chorus.modelsDirectory must be a normalized absolute path using letters, digits, dots, underscores, and hyphens.";
+        assertion = cfg.modelsDirectories != [ ];
+        message = "services.chorus.modelsDirectories must not be empty.";
+      }
+      {
+        assertion = lib.length cfg.modelsDirectories == lib.length (lib.unique cfg.modelsDirectories);
+        message = "services.chorus.modelsDirectories must not contain duplicates.";
+      }
+      {
+        assertion = lib.all validDirectory cfg.modelsDirectories;
+        message = "services.chorus.modelsDirectories entries must be normalized absolute paths using letters, digits, dots, underscores, and hyphens.";
       }
       {
         assertion = cfg.idleTimeout >= 0.0;
@@ -308,23 +320,25 @@ in
       unitConfig.RequiresMountsFor = [
         cfg.stateDirectory
         cfg.cacheDirectory
-        cfg.modelsDirectory
-      ];
+      ]
+      ++ cfg.modelsDirectories;
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = utils.escapeSystemdExecArgs [
-          "${pkgs.coreutils}/bin/install"
-          "-d"
-          "-m0750"
-          "-o"
-          "chorus"
-          "-g"
-          "chorus"
-          cfg.stateDirectory
-          "${cfg.stateDirectory}/application"
-          cfg.cacheDirectory
-          cfg.modelsDirectory
-        ];
+        ExecStart = utils.escapeSystemdExecArgs (
+          [
+            "${pkgs.coreutils}/bin/install"
+            "-d"
+            "-m0750"
+            "-o"
+            "chorus"
+            "-g"
+            "chorus"
+            cfg.stateDirectory
+            "${cfg.stateDirectory}/application"
+            cfg.cacheDirectory
+          ]
+          ++ primaryModelsDirectories
+        );
       };
     };
 
@@ -340,8 +354,8 @@ in
       unitConfig.RequiresMountsFor = [
         cfg.stateDirectory
         cfg.cacheDirectory
-        cfg.modelsDirectory
-      ];
+      ]
+      ++ cfg.modelsDirectories;
       path = [
         pkgs.uv
         pkgs.ffmpeg
@@ -385,8 +399,8 @@ in
         ReadWritePaths = [
           cfg.stateDirectory
           cfg.cacheDirectory
-          cfg.modelsDirectory
-        ];
+        ]
+        ++ primaryModelsDirectories;
         EnvironmentFile = lib.optional (cfg.environmentFile != null) cfg.environmentFile;
       }
       // lib.optionalAttrs (cfg.stateDirectory == "/var/lib/chorus") {

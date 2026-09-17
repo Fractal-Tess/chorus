@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 # The Nix package is immutable.  Keep the application checkout, virtualenvs,
-# git checkouts, model catalog and every downloader cache below the two paths
-# supplied by the service module (or their standalone defaults).
+# model catalog and every downloader cache below the configured service paths
+# (or their standalone defaults).
 readonly STORE_SOURCE="@chorusSource@"
 readonly NIX_PYTHON="@python@/bin/python3.12"
 readonly UV="@uv@/bin/uv"
@@ -13,7 +13,7 @@ export PATH="$TOOL_PATH:/run/current-system/sw/bin:${PATH:-/usr/bin:/bin}"
 state_dir=${CHORUS_STATE_DIR:-/var/lib/chorus}
 cache_dir=${CHORUS_CACHE_DIR:-/var/cache/chorus}
 engines=${CHORUS_ENGINES-kokoro}
-models_dir=${CHORUS_MODELS_DIR:-"$state_dir/models"}
+models_dirs_value=${CHORUS_MODELS_DIRS-"$state_dir/models"}
 application="$state_dir/application"
 
 fail() {
@@ -22,7 +22,16 @@ fail() {
 }
 
 [[ -d "$STORE_SOURCE" ]] || fail "packaged source is missing: $STORE_SOURCE"
-[[ -n "$state_dir" && -n "$cache_dir" && -n "$models_dir" ]] || fail "state, cache, and model paths must be non-empty"
+[[ -n "$state_dir" && -n "$cache_dir" ]] || fail "state and cache paths must be non-empty"
+
+case "$models_dirs_value" in
+    ''|:*|*:|*::* ) fail "CHORUS_MODELS_DIRS must be a colon-separated list of non-empty paths" ;;
+esac
+IFS=: read -r -a model_dirs <<< "$models_dirs_value"
+for models_dir in "${model_dirs[@]}"; do
+    [[ -n "$models_dir" ]] || fail "CHORUS_MODELS_DIRS contains an empty model path"
+done
+primary_models_dir=${model_dirs[0]}
 
 # Validate this before creating directories or running uv.  The CLI validates
 # again, but doing it here prevents a typo from partially provisioning state.
@@ -43,7 +52,7 @@ for item in "${selected_engines[@]}"; do
     seen[$engine]=1
 done
 
-mkdir -p "$state_dir" "$cache_dir" "$application" "$models_dir"
+mkdir -p "$state_dir" "$cache_dir" "$application" "$primary_models_dir"
 
 # Hold the lock for the server lifetime so a second launch cannot rewrite a
 # running worker's source. The kernel releases it even after an unclean exit.
@@ -88,7 +97,7 @@ export LD_LIBRARY_PATH="/run/opengl-driver/lib:@libraryPath@${LD_LIBRARY_PATH:+:
 if [[ -d "$STORE_SOURCE/models" ]]; then
     while IFS= read -r -d '' manifest; do
         relative=${manifest#"$STORE_SOURCE/models/"}
-        target="$models_dir/$relative"
+        target="$primary_models_dir/$relative"
         mkdir -p "${target%/*}"
         install -m 0644 "$manifest" "$target"
     done < <("@find@/bin/find" "$STORE_SOURCE/models" -type f -name manifest.json -print0)
@@ -176,5 +185,6 @@ for item in "${selected_engines[@]}"; do
 done
 export VIRTUAL_ENV="$application/.venv"
 export PATH="$VIRTUAL_ENV/bin:/run/current-system/sw/bin:$TOOL_PATH:${PATH:-/usr/bin:/bin}"
+export TTS_MODELS_DIRS="$models_dirs_value"
 exec "$VIRTUAL_ENV/bin/python" -m chorus.cli \
-    --engines "$engines" --models-dir "$models_dir" "$@"
+    --engines "$engines" "$@"

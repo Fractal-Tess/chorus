@@ -14,6 +14,21 @@ from tempfile import NamedTemporaryFile
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def model_roots(roots: list[Path] | None = None) -> tuple[Path, ...]:
+    if roots is None:
+        configured = os.environ.get("TTS_MODELS_DIRS")
+        if configured is None:
+            roots = [ROOT / "models"]
+        else:
+            parts = configured.split(os.pathsep)
+            if any(not part for part in parts):
+                raise ValueError("TTS_MODELS_DIRS must contain non-empty model paths")
+            roots = [Path(part) for part in parts]
+    if not roots:
+        raise ValueError("At least one model directory is required")
+    return tuple(dict.fromkeys(path.resolve() for path in roots))
+
+
 def _file_problem(path: Path) -> str | None:
     if not path.is_file():
         return "missing or not a regular file"
@@ -63,25 +78,34 @@ class ModelSpec:
         path = self.artifact_path(name)
         if problem := _file_problem(path):
             raise RuntimeError(
-                f"{path}: {problem}. Run serve-api --models-dir "
-                f"{shlex.quote(str(self.directory.parent.parent))} "
-                f"--fetch-model {self.engine}/{self.name}"
+                f"{path}: {problem}. Restart serve-api with --download-missing "
+                "and the same ordered --models-dir options."
             )
         return path
 
 
 class ModelCatalog:
-    def __init__(self, root: Path | None = None):
-        self.root = (
-            root or Path(os.environ.get("TTS_MODELS_DIR", ROOT / "models"))
-        ).resolve()
-        self.models = {}
-        for path in sorted(self.root.glob("*/*/manifest.json")):
-            manifest = json.loads(path.read_text())
-            spec = ModelSpec(
-                path.parent.parent.name, path.parent.name, path.parent, manifest
-            )
-            self.models[(spec.engine, spec.name)] = spec
+    def __init__(self, roots: list[Path] | None = None):
+        self.roots = model_roots(roots)
+        self.models: dict[tuple[str, str], ModelSpec] = {}
+        for root in self.roots:
+            for path in sorted(root.glob("*/*/manifest.json")):
+                key = (path.parent.parent.name, path.parent.name)
+                if key in self.models:
+                    continue
+                manifest = json.loads(path.read_text())
+                engine, name = key
+                primary = ModelSpec(
+                    engine, name, self.roots[0] / engine / name, manifest
+                )
+                self.models[key] = primary
+                for candidate_root in self.roots:
+                    candidate = ModelSpec(
+                        engine, name, candidate_root / engine / name, manifest
+                    )
+                    if not candidate.missing_artifacts():
+                        self.models[key] = candidate
+                        break
 
     def resolve(self, engine: str, model: str | None = None) -> ModelSpec:
         candidates = [spec for (key, _), spec in self.models.items() if key == engine]
@@ -105,8 +129,9 @@ class ModelCatalog:
                 self.resolve(engine)
             except ValueError as error:
                 raise ValueError(
-                    f"{error}. Restore the manifests under {self.root / engine} "
-                    "with exactly one default model, or select the correct --models-dir."
+                    f"{error}. Restore the manifests under "
+                    f"{', '.join(str(root / engine) for root in self.roots)} "
+                    "with exactly one default model, or correct --models-dir."
                 ) from error
             selected.extend(
                 spec for spec in self.models.values() if spec.engine == engine
@@ -155,10 +180,12 @@ class ModelCatalog:
                     f"  {python}: not executable. "
                     f"Run uv sync --project runtimes/{engine} --locked"
                 )
+        root_options = " ".join(
+            f"--models-dir {shlex.quote(str(root))}" for root in self.roots
+        )
         repair = (
             "Run serve-api --engines "
-            f"{shlex.quote(','.join(engines))} --models-dir "
-            f"{shlex.quote(str(self.root))} --download-missing "
+            f"{shlex.quote(','.join(engines))} {root_options} --download-missing "
             "(with your other launch options), or restore the listed files."
         )
         if runtime_problems or (diagnostics and not download_missing):
@@ -181,7 +208,25 @@ class ModelCatalog:
 
     def fetch(self, selector: str, *, only_missing: bool = False) -> None:
         engine, name = selector.split("/", 1)
-        spec = self.resolve(engine, name)
+        selected = self.resolve(engine, name)
+        if only_missing and not selected.missing_artifacts():
+            return
+        spec = ModelSpec(engine, name, self.roots[0] / engine / name, selected.manifest)
+        spec.directory.mkdir(parents=True, exist_ok=True)
+        manifest_path = spec.directory / "manifest.json"
+        if not manifest_path.exists():
+            temporary_manifest = None
+            try:
+                with NamedTemporaryFile(
+                    mode="w", dir=spec.directory, prefix=".manifest.", delete=False
+                ) as output:
+                    temporary_manifest = Path(output.name)
+                    json.dump(spec.manifest, output, indent=2)
+                    output.write("\n")
+                os.replace(temporary_manifest, manifest_path)
+            finally:
+                if temporary_manifest is not None:
+                    temporary_manifest.unlink(missing_ok=True)
         missing = spec.missing_artifacts()
         artifacts = spec.manifest["artifacts"]
         for relative, source in artifacts.items():
@@ -220,3 +265,4 @@ class ModelCatalog:
                     "then retry --download-missing."
                 ) from error
             print(f"Fetched {selector}/{relative}", flush=True)
+        self.models[(engine, name)] = spec

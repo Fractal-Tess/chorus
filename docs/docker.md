@@ -22,37 +22,61 @@ model and cache directories outside the container so later runs reuse them.
 
 ## Storage
 
-The container uses `/models` for the writable model catalog and weights, and
-`/cache` for download and processor caches. The entrypoint copies shipped
-manifests into the selected model directory without deleting existing weights.
-`TTS_MODELS_DIR` changes the default from `/models`; an explicit
-`--models-dir PATH` takes precedence over that environment variable.
+With no model-root override, the container uses `/models` as its primary
+writable model root and `/cache` for download and processor caches. The
+entrypoint copies shipped manifests into the first configured root without
+deleting existing weights. Model roots are ordered: for each engine and model,
+Chorus selects the first root containing a complete, usable
+`<engine>/<model>/` directory. It never merges artifacts across roots. If no
+root has a complete model, downloads go only to the primary root, reusing
+partial files there. Secondary roots need read and traverse access only and
+may be mounted read-only.
 
-Named volumes are the simplest persistent setup:
+Set roots with `TTS_MODELS_DIRS` as a colon-separated list, or repeat
+`--models-dir PATH`. Explicit flags replace the environment roots. For example,
+put the fast SSD first and a larger disk second:
+
+```sh
+sudo install -d -o 10001 -g 10001 -m 0750 \
+  /mnt/fast/chorus/models /mnt/archive/chorus/models
+```
+
+The primary root must be writable by UID/GID `10001`; the secondary root only
+needs permissions that let that user traverse directories and read model files:
+
+```sh
+docker run --rm --name chorus-multi-root \
+  -p 127.0.0.1:8002:8000 \
+  -v /mnt/fast/chorus/models:/models-fast \
+  -v /mnt/archive/chorus/models:/models-slow:ro \
+  -v chorus-cache:/cache \
+  chorus:local \
+  --models-dir /models-fast \
+  --models-dir /models-slow \
+  --engines kokoro --devices cpu --download-missing
+```
+
+The entrypoint seeds manifests into `/models-fast`, never into the secondary
+mount. The equivalent environment configuration is:
+
+```sh
+docker run --rm --name chorus-multi-root \
+  -p 127.0.0.1:8002:8000 \
+  -e TTS_MODELS_DIRS=/models-fast:/models-slow \
+  -v /mnt/fast/chorus/models:/models-fast \
+  -v /mnt/archive/chorus/models:/models-slow:ro \
+  -v chorus-cache:/cache \
+  chorus:local --engines kokoro --devices cpu --download-missing
+```
+
+Named volumes are the simplest single-root persistent setup:
 
 ```sh
 docker volume create chorus-models
 docker volume create chorus-cache
 ```
 
-To keep data on another drive, bind mount directories there instead. The
-container runs as UID/GID `10001`, so create the directories with matching
-ownership before the first run:
-
-```sh
-sudo install -d -o 10001 -g 10001 -m 0750 \
-  /mnt/fast/chorus/models /mnt/fast/chorus/cache
-```
-
-Use those paths in place of the named volumes:
-
-```sh
--v /mnt/fast/chorus/models:/models \
--v /mnt/fast/chorus/cache:/cache
-```
-
-The same UID/GID requirement applies to any host bind mount used for
-`TTS_MODELS_DIR`. Do not bake weights into the image or Docker build context.
+Do not bake weights into the image or Docker build context.
 
 ## CPU
 
@@ -127,13 +151,13 @@ other machines.
 
 ## Entrypoint and scope
 
-The image provides writable `/models` and `/cache` directories. Its entrypoint
-installs shipped manifests into the selected model directory, then executes
-Chorus with the supplied arguments. Image defaults are `--engines kokoro --devices cpu
---download-missing`; pass explicit arguments when changing engines or device
-pools. CPU and GPU are logical request channels: `--devices` declares the
-available pool, while speech requests select `"channel": "cpu"` or
-`"channel": "gpu"`.
+The image provides writable `/models` and `/cache` directories by default. Its
+entrypoint installs shipped manifests into the first configured model root,
+then executes Chorus with the supplied arguments. Image defaults are
+`--engines kokoro --devices cpu --download-missing`; pass explicit arguments
+when changing engines, device pools, or model roots. CPU and GPU are logical
+request channels: `--devices` declares the available pool, while speech
+requests select `"channel": "cpu"` or `"channel": "gpu"`.
 
 Only the main Python environment is present in this image. Breeze TTS 2 and
 Fish Audio S2-Pro need their separate runtimes and are not included; this
@@ -149,7 +173,7 @@ and two RTX 3090s exposed through NVIDIA CDI:
 - Host GPU 1 exposed alone and used as container `cuda:0`.
 - Fresh model downloads, persistent-volume reuse, and CPU synthesis after
   restarting with `--network none`.
-- CLI model-directory override, UID/GID `10001`, healthy container checks,
+- CLI model-root override, UID/GID `10001`, healthy container checks,
   browser console rendering, and decoded MP3 output.
 
 The standard `--gpus all` command requires the NVIDIA Docker runtime and was

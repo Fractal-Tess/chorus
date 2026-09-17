@@ -7,6 +7,7 @@
 - NixOS service: Kokoro CUDA defaults, configurable engines and persistent models.
 - Add a transparent amber Chorus logo and a shorter README with linked setup, API, and development guides.
 - Wait for configured storage mounts and prepare writable directories before starting the NixOS service; document moving model storage to another drive.
+- Add ordered model storage across CLI, Docker, and NixOS: the first complete model wins, downloads stay in the primary root, and moved model directories are rediscovered after restarting.
 - Add public source-only GitHub clone tutorials and a supported-model CPU/CUDA table.
 - Use support-status emojis in the README CPU/CUDA table.
 

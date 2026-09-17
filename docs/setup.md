@@ -32,7 +32,7 @@ Breeze and Fish also require their isolated runtime setup below. `--download-mis
 
 For a GitHub clone, use `GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Fractal-Tess/chorus.git`, then `--download-missing`. GitHub contains lightweight LFS pointers but does not host the model binaries. The project's LFS objects remain in Gitadel; a scoped `git lfs pull --include="models/kokoro/**"` is only useful for a clone connected to that LFS server. Public users can download selected models directly from the pinned upstream manifests without Gitadel access.
 
-`--devices` sets the physical hardware pool; speech requests choose a CPU or GPU channel rather than a GPU number. `--preload kokoro/82m-v1.0` warms a selected model on its configured default channel after the file checks. `--models-dir PATH` (or `TTS_MODELS_DIR`) selects another model catalog.
+`--devices` sets the physical hardware pool; speech requests choose a CPU or GPU channel rather than a GPU number. `--preload kokoro/82m-v1.0` warms a selected model on its configured default channel after the file checks. Model storage uses ordered roots: repeat `--models-dir PATH` for each root, or set `TTS_MODELS_DIRS` to a colon-separated list. Explicit CLI roots replace the environment roots. Chorus searches roots in order and selects the first complete, usable `<engine>/<model>/` directory; an incomplete earlier copy does not mask a complete later copy, and artifacts are never combined across roots. If no root has a complete model, downloads go only to the primary (first) root, reusing any partial artifacts there. Secondary roots need read and traverse access only.
 
 CUDA uses ONNX Runtime's GPU wheel, which also supports CPU execution. The environment includes CUDA 12 and cuDNN runtime libraries; an NVIDIA driver is still required. On NixOS, the launcher includes `/run/opengl-driver/lib`. PyTorch and the optional processors remain CPU-based.
 
@@ -63,7 +63,7 @@ modules = [
 
 This targets x86_64 Linux with a working NVIDIA driver. The module does not change the host's driver configuration. Rebuild your system, then check `systemctl status chorus` and `journalctl -u chorus -f`. The API and console listen on `127.0.0.1:8000` by default.
 
-Nix installs the launcher and system libraries. First startup uses `uv sync --locked` to provision Python dependencies, then downloads missing selected-engine model files before listening. **Python dependencies are provisioned at runtime, not built into the Nix closure.** First startup needs network access and several GB of disk space. State lives in `/var/lib/chorus`, models in `/var/lib/chorus/models`, and download caches in `/var/cache/chorus`; these paths are configurable. Model weights never enter the service package.
+Nix installs the launcher and system libraries. First startup uses `uv sync --locked` to provision Python dependencies, then downloads missing selected-engine model files before listening. **Python dependencies are provisioned at runtime, not built into the Nix closure.** First startup needs network access and several GB of disk space. State lives in `/var/lib/chorus`, models default to `/var/lib/chorus/models`, and download caches default to `/var/cache/chorus`; these paths are configurable. `modelsDirectories` is a nonempty ordered list of normalized absolute paths and defaults to `[ "${cfg.stateDirectory}/models" ]`. Model weights never enter the service package.
 
 Set `host = "0.0.0.0"; openFirewall = true;` to serve other machines on a trusted network. The API has no authentication; do not expose it publicly. Options also cover `port`, `preload`, `idleTimeout`, `gpuQueueSize`, RAM/VRAM budgets, and `channelConfig`. Use `environmentFile` for credentials rather than putting secrets in the Nix store. See [the module](../nix/module.nix) for the full option definitions.
 
@@ -73,52 +73,62 @@ Kokoro was verified under systemd's non-root service sandbox on an RTX 3090, inc
 
 ### Store models on another drive
 
-Set the destination in your NixOS configuration:
+Set ordered roots in your NixOS configuration. Put the fast, writable SSD first and a larger, slower disk second:
 
 ```nix
 services.chorus = {
   enable = true;
   engines = [ "kokoro" ];
   devices = [ "cpu" "cuda:0" ];
-  modelsDirectory = "/mnt/vault/ai/chorus/models";
+  modelsDirectories = [
+    "/mnt/fast/chorus/models"
+    "/mnt/archive/chorus/models"
+  ];
   downloadMissing = true;
 };
 ```
 
-Both model loading and missing-model downloads use `modelsDirectory`. The
-launcher installs the catalog manifests there and downloads weights into
-`<directory>/<engine>/<model>/`. Download URLs still come from the pinned
-upstream manifests; this option changes the local destination, not the source.
+The roots are searched in order. For each engine and model, Chorus uses the
+first root containing a complete, usable model directory. Manifests use the
+first occurrence of each model, and Chorus never merges artifacts from
+different roots. If no root contains a complete copy, `downloadMissing` writes
+only to the first root and reuses partial artifacts already there. Downloads
+never mutate secondary roots. The module seeds the shipped manifests into the
+primary root only; it does not write manifests or weights to secondary roots.
 
-Configure the drive's mount in NixOS `fileSystems` first. Chorus requires the
-mounts containing its model, state, and cache directories. A preparation unit
-creates the directories as `chorus:chorus` with mode `0750` after mounting and
-before the sandboxed API starts, including when the mount is marked `nofail`.
-If the configured mount fails, Chorus does not start and download onto the
-underlying root filesystem.
+Configure both drives in NixOS `fileSystems` first. The module includes every
+configured root in `RequiresMountsFor`, so Chorus waits for all of them before
+starting and never downloads onto an unmounted path on the root filesystem.
+Preparation, ownership changes, and the service's writable allowlist cover only
+the primary root, state, and cache directories. Secondary roots only need read
+and traverse access for the `chorus` user and may be mounted read-only.
 
-Use an absolute path without spaces, such as `/mnt/vault/ai/chorus/models`.
-Avoid `/home`, `/root`, and `/run/user`: the service deliberately hides home
-directories. `cacheDirectory` independently controls download and runtime
-caches; `stateDirectory` controls the application and Python environments.
-Changing only `modelsDirectory` leaves both at their defaults.
+Use absolute paths without spaces. Avoid `/home`, `/root`, and `/run/user`:
+the service deliberately hides home directories. `cacheDirectory` independently
+controls download and runtime caches; `stateDirectory` controls the application
+and Python environments. Changing `modelsDirectories` leaves state and cache
+paths at their defaults.
+The Hugging Face download cache can retain a second copy of downloaded weights.
+Put `cacheDirectory` on the larger disk too if SSD space is tight.
 
-Changing the option does not move existing weights. Either let
-`downloadMissing` populate the new directory, or stop Chorus and copy the
-existing catalog before rebuilding:
+To move a complete model between roots, stop Chorus and move the entire
+`<engine>/<model>/` directory. Do not split a model's files across roots:
 
 ```sh
 sudo systemctl stop chorus
-sudo install -d -o chorus -g chorus -m 0750 /mnt/vault/ai/chorus/models
-sudo rsync -a --chown=chorus:chorus /var/lib/chorus/models/ /mnt/vault/ai/chorus/models/
-# Rebuild using your system flake, then:
+sudo install -d -o chorus -g chorus -m 0750 \
+  /mnt/archive/chorus/models/kokoro
+sudo mv /mnt/fast/chorus/models/kokoro/82m-v1.0 \
+  /mnt/archive/chorus/models/kokoro/
 sudo systemctl start chorus
 journalctl -u chorus -n 30
 ```
 
-Confirm the drive is mounted before copying. Keep the old files until the new
-configuration has generated speech successfully. With `downloadMissing = false`,
-missing or incomplete model files fail startup instead of triggering a download.
+After the restart, the complete copy on the second root is discovered without
+a redownload. Ensure the destination has read and traverse permissions for
+`chorus` before starting the service. If `downloadMissing = false`, a model
+missing or incomplete in every configured root fails startup instead of
+triggering a download.
 
 ## Breeze setup
 

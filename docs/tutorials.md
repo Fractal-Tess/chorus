@@ -59,23 +59,44 @@ curl --fail-with-body http://127.0.0.1:8000/v1/audio/speech \
 
 An explicit GPU request does not fall back to CPU. If no enabled CUDA device is available, the request returns an error instead. See the [audio endpoint reference](api.md#generate-audio) for voices, formats, and optional processing.
 
-## Put models in another directory
+## Use ordered model roots
 
-The catalog contains the `ENGINE/MODEL/manifest.json` trees. From a source-only clone, copy the shipped catalog to another directory, then download selected weights there. Keep all manifests so the shipped channel policy can resolve every model it names:
+Keep a fast SSD first for downloads and a larger, slower disk second for
+models that do not fit on the SSD. Copy the shipped manifests to the primary
+root, then pass both roots with repeatable flags:
 
 ```sh
-mkdir -p "$HOME/.local/share/chorus-models"
-cp -a models/. "$HOME/.local/share/chorus-models/"
+mkdir -p /mnt/fast/chorus/models /mnt/archive/chorus/models
+cp -a models/. /mnt/fast/chorus/models/
 serve-api \
-  --models-dir "$HOME/.local/share/chorus-models" \
+  --models-dir /mnt/fast/chorus/models \
+  --models-dir /mnt/archive/chorus/models \
   --engines kokoro --download-missing --devices cpu,cuda:0
 ```
 
-The same setting is available as `TTS_MODELS_DIR`. Preserve the manifest paths when adding another shipped model. For NixOS, set `services.chorus.modelsDirectory`; the module installs manifests and manages directory permissions for you. See [storing models on another drive](setup.md#store-models-on-another-drive).
+The same order can come from `TTS_MODELS_DIRS`, as a colon-separated list:
 
-If your checkout already contains downloaded weights, this copy includes them.
-The NixOS module copies manifests automatically and never requires copying the
-source checkout's model binaries.
+```sh
+TTS_MODELS_DIRS=/mnt/fast/chorus/models:/mnt/archive/chorus/models \
+  serve-api --engines kokoro --download-missing --devices cpu,cuda:0
+```
+
+Explicit `--models-dir` flags replace the environment roots. Chorus searches
+roots in order and picks the first complete, usable
+`<engine>/<model>/` directory. It never merges artifacts across roots, so an
+incomplete copy on the SSD does not hide a complete copy on the larger disk.
+When no root has a complete model, missing files are downloaded only to the
+first root, reusing partial artifacts there. Secondary roots need read and
+traverse access only.
+
+For NixOS, use the same ordered roots with
+`services.chorus.modelsDirectories`; the module seeds manifests and permits
+writes only in the primary root. See [storing models on another drive](setup.md#store-models-on-another-drive).
+
+If your checkout already contains downloaded weights, copying the manifests
+and model directories includes them. To relocate a model later, stop Chorus,
+move the complete `<engine>/<model>/` directory to another configured root,
+then restart. The complete model is discovered there without a redownload.
 
 ## Model files and usage rights
 

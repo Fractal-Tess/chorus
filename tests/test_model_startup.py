@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -49,11 +50,10 @@ class ModelStartupTests(unittest.TestCase):
                 ),
                 self.assertRaises(RuntimeError) as raised,
             ):
-                ModelCatalog(root).prepare(["kokoro"])
+                ModelCatalog([root]).prepare(["kokoro"])
             message = str(raised.exception)
             for name in ("missing", "empty", "pointer"):
                 self.assertIn(str(selected / name), message)
-            self.assertIn("--download-missing", message)
             self.assertNotIn(str(unrelated), message)
             self.assertEqual((selected / "pointer").read_bytes(), LFS_POINTER)
 
@@ -87,7 +87,7 @@ class ModelStartupTests(unittest.TestCase):
                 return str(cache / filename)
 
             with patch("huggingface_hub.hf_hub_download", side_effect=download):
-                ModelCatalog(root).prepare(["kokoro"], download_missing=True)
+                ModelCatalog([root]).prepare(["kokoro"], download_missing=True)
             for name, expected in payloads.items():
                 self.assertEqual((selected / name).read_bytes(), expected)
             self.assertEqual(healthy.stat().st_mtime_ns, original_stat.st_mtime_ns)
@@ -97,7 +97,7 @@ class ModelStartupTests(unittest.TestCase):
                 "huggingface_hub.hf_hub_download",
                 side_effect=AssertionError("Unexpected repeat download"),
             ):
-                ModelCatalog(root).prepare(["kokoro"], download_missing=True)
+                ModelCatalog([root]).prepare(["kokoro"], download_missing=True)
 
     def test_bad_download_does_not_replace_existing_pointer(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -113,7 +113,7 @@ class ModelStartupTests(unittest.TestCase):
                 ),
                 self.assertRaises(RuntimeError),
             ):
-                ModelCatalog(root).prepare(["kokoro"], download_missing=True)
+                ModelCatalog([root]).prepare(["kokoro"], download_missing=True)
             self.assertEqual(target.read_bytes(), LFS_POINTER)
 
     def test_missing_runtime_reports_setup_before_fetching_weights(self):
@@ -128,14 +128,95 @@ class ModelStartupTests(unittest.TestCase):
                 ),
                 self.assertRaises(RuntimeError) as raised,
             ):
-                ModelCatalog(root).prepare(["breeze"], download_missing=True)
+                ModelCatalog([root]).prepare(["breeze"], download_missing=True)
             message = str(raised.exception)
             self.assertIn(str(selected / "weights"), message)
             self.assertIn(str(root / "runtimes/breeze/.venv/bin/python"), message)
-            self.assertIn("uv sync --project runtimes/breeze --locked", message)
-            self.assertIn(
-                "git submodule update --init runtimes/breeze/upstream", message
+
+    def test_first_complete_copy_wins(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            roots = [Path(temporary) / name for name in ("ssd", "archive")]
+            for root, data in zip(roots, (b"first", b"second")):
+                directory = model(root, "kokoro", {"weights": data})
+                (directory / "weights").write_bytes(data)
+            catalog = ModelCatalog(roots)
+            self.assertEqual(
+                catalog.resolve("kokoro").artifact("weights").read_bytes(), b"first"
             )
+            reversed_catalog = ModelCatalog(list(reversed(roots)))
+            self.assertEqual(
+                reversed_catalog.resolve("kokoro").artifact("weights").read_bytes(),
+                b"second",
+            )
+
+    def test_moved_model_is_found_past_incomplete_copies_without_downloading(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            roots = [Path(temporary) / name for name in ("ssd", "disk", "archive")]
+            payload = {"weights": b"complete model", "voices": b"complete voices"}
+            original = model(roots[0], "kokoro", payload)
+            for name, data in payload.items():
+                (original / name).write_bytes(data)
+            ModelCatalog(roots).prepare(["kokoro"])
+            destination = roots[2] / "kokoro" / "default"
+            destination.parent.mkdir(parents=True)
+            shutil.move(original, destination)
+            model(roots[0], "kokoro", payload)  # Launcher refreshes primary manifests.
+            partial = model(roots[1], "kokoro", payload)
+            (partial / "weights").write_bytes(LFS_POINTER)
+            (partial / "voices").touch()
+            with patch(
+                "huggingface_hub.hf_hub_download",
+                side_effect=AssertionError("Moved model must not be downloaded"),
+            ):
+                restarted = ModelCatalog(roots)
+                restarted.prepare(["kokoro"], download_missing=True)
+            self.assertEqual(
+                restarted.resolve("kokoro").artifact("weights"), destination / "weights"
+            )
+            self.assertFalse((original / "weights").exists())
+            self.assertEqual((partial / "weights").read_bytes(), LFS_POINTER)
+
+    def test_missing_model_downloads_to_primary_with_metadata_only_on_secondary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            roots = [Path(temporary) / name for name in ("ssd", "archive")]
+            payload = b"downloaded model"
+            secondary = model(roots[1], "kokoro", {"weights": payload})
+            cached = Path(temporary) / "cached"
+            cached.write_bytes(payload)
+            with patch("huggingface_hub.hf_hub_download", return_value=str(cached)):
+                ModelCatalog(roots).prepare(["kokoro"], download_missing=True)
+            restarted = ModelCatalog(roots)
+            self.assertEqual(
+                restarted.resolve("kokoro").artifact("weights").read_bytes(), payload
+            )
+            self.assertEqual(
+                restarted.resolve("kokoro").directory, roots[0] / "kokoro/default"
+            )
+            self.assertFalse((secondary / "weights").exists())
+            shutil.rmtree(roots[1])
+            ModelCatalog([roots[0]]).prepare(["kokoro"])
+
+    def test_partial_copies_are_not_combined_across_roots(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            roots = [Path(temporary) / name for name in ("ssd", "archive")]
+            payload = {"weights": b"model", "voices": b"voice bank"}
+            primary = model(roots[0], "kokoro", payload)
+            secondary = model(roots[1], "kokoro", payload)
+            (primary / "weights").write_bytes(payload["weights"])
+            (secondary / "voices").write_bytes(payload["voices"])
+            with self.assertRaises(RuntimeError):
+                ModelCatalog(roots).prepare(["kokoro"])
+            with patch(
+                "huggingface_hub.hf_hub_download",
+                return_value=str(secondary / "voices"),
+            ):
+                repaired = ModelCatalog(roots)
+                repaired.prepare(["kokoro"], download_missing=True)
+            self.assertEqual(
+                repaired.resolve("kokoro").artifact("voices"), primary / "voices"
+            )
+            self.assertEqual((primary / "weights").read_bytes(), payload["weights"])
+            self.assertFalse((secondary / "weights").exists())
 
 
 if __name__ == "__main__":

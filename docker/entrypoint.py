@@ -8,20 +8,17 @@ import shutil
 import sys
 from pathlib import Path
 
+from chorus.models import model_roots
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 SHIPPED_MODELS = APP_ROOT / "models"
 
 
-def _requested_models_dir(arguments: list[str]) -> Path:
+def _requested_model_roots(arguments: list[str]) -> tuple[Path, ...]:
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        "--models-dir",
-        type=Path,
-        default=Path(os.environ.get("TTS_MODELS_DIR") or "/models"),
-    )
+    parser.add_argument("--models-dir", type=Path, action="append")
     options, _ = parser.parse_known_args(arguments)
-    return options.models_dir
+    return model_roots(options.models_dir)
 
 
 def _seed_manifests(destination_root: Path) -> None:
@@ -37,10 +34,10 @@ def _seed_manifests(destination_root: Path) -> None:
 
 def main() -> None:
     arguments = sys.argv[1:]
-    models_dir = _requested_models_dir(arguments)
-    _seed_manifests(models_dir)
+    roots = _requested_model_roots(arguments)
+    _seed_manifests(roots[0])
     # Keep libraries that consult the environment aligned with CLI precedence.
-    os.environ["TTS_MODELS_DIR"] = str(models_dir)
+    os.environ["TTS_MODELS_DIRS"] = os.pathsep.join(map(str, roots))
     os.execv(sys.executable, [sys.executable, "-m", "chorus.cli", *arguments])
 
 

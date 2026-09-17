@@ -99,7 +99,12 @@ def main() -> None:
     parser.add_argument(
         "--port", type=int, default=int(os.environ.get("TTS_PORT", "8000"))
     )
-    parser.add_argument("--models-dir", type=Path)
+    parser.add_argument(
+        "--models-dir",
+        type=Path,
+        action="append",
+        help="Model root in search order; repeat for multiple roots. Downloads use the first.",
+    )
     parser.add_argument(
         "--devices", help="Allowed devices, e.g. cpu,cuda:0 (no duplicates)"
     )
