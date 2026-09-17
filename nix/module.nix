@@ -170,8 +170,8 @@ in
 
     idleTimeout = lib.mkOption {
       type = lib.types.number;
-      default = 300.0;
-      description = "Seconds after which an idle model worker may be unloaded.";
+      default = 1800.0;
+      description = "Seconds after which an idle model worker may be unloaded. Defaults to 30 minutes; zero unloads immediately after pending work drains.";
     };
 
     gpuQueueSize = lib.mkOption {

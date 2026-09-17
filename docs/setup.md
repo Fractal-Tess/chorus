@@ -67,6 +67,13 @@ Nix installs the launcher and system libraries. First startup uses `uv sync --lo
 
 Set `host = "0.0.0.0"; openFirewall = true;` to serve other machines on a trusted network. The API has no authentication; do not expose it publicly. Options also cover `port`, `preload`, `idleTimeout`, `gpuQueueSize`, RAM/VRAM budgets, and `channelConfig`. Use `environmentFile` for credentials rather than putting secrets in the Nix store. See [the module](../nix/module.nix) for the full option definitions.
 
+Idle model workers stay loaded for 30 minutes by default. Override the timeout
+in seconds with `services.chorus.idleTimeout = 3600;` on NixOS, or
+`--idle-timeout 3600` for manual and Docker launches. Preloading warms the
+default channel at startup but does not pin the worker. A value of `0` unloads
+workers immediately after pending work drains; memory budgets may also evict
+idle workers before the timeout.
+
 To enable another large engine later, add `"breeze"` or `"fish"` to `engines`. The launcher provisions only the selected engines' isolated runtimes, using their pinned upstream commits. Their model licenses restrict commercial use; read the [Breeze](#breeze-setup) and [Fish](#fish-setup) notes first.
 
 Kokoro was verified under systemd's non-root service sandbox on an RTX 3090, including CUDA synthesis and a cached restart with external network access denied.

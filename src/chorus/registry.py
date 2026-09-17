@@ -44,7 +44,7 @@ class EngineRegistry:
         *,
         channel_config: Path | None = None,
         gpu_queue_size: int = 32,
-        idle_timeout: float = 300,
+        idle_timeout: float = 1800,
         ram_budget_bytes: int | None = None,
         vram_budget_bytes: dict[str, int] | None = None,
     ):

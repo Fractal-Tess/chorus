@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 - 2026-09-17
 
+- Keep idle model workers loaded for 30 minutes by default; retain configurable timeouts through `--idle-timeout` and `services.chorus.idleTimeout`.
 - Add Docker support with persistent model/cache storage, verified Kokoro CPU and dual-GPU execution, and NVIDIA CUDA/CDI run instructions.
 - Reorder README usage examples: manual setup, Docker, then the Nix flake and NixOS.
 - NixOS service: Kokoro CUDA defaults, configurable engines and persistent models.

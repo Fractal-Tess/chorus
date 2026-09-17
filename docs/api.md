@@ -28,13 +28,13 @@ Start with 4–8 concurrent clients and leave queue capacity at 32. More waiting
 
 ## Memory and idle unloading
 
-Startup loads no models unless `--preload` is supplied. Each model/device pair runs in its own worker process, retaining weights and optional post-processing models between requests. `--idle-timeout` sets the idle lifetime in seconds (default `300`; `0` unloads once pending work drains). Eviction exits the worker and its nested runtimes, releasing their RAM and GPU allocations. The API process remains running with a small RAM footprint.
+Startup loads no models unless `--preload` is supplied. Each model/device pair runs in its own worker process, retaining weights and optional post-processing models between requests. `--idle-timeout` sets the idle lifetime in seconds (default `1800`, or 30 minutes; `0` unloads once pending work drains). Eviction exits the worker and its nested runtimes, releasing their RAM and GPU allocations. The API process remains running with a small RAM footprint.
 
 Set an aggregate worker RAM budget and separate VRAM budgets for enabled GPUs:
 
 ```bash
 serve-api --engines kokoro --devices cpu,cuda:0,cuda:1 \
-  --idle-timeout 300 \
+  --idle-timeout 1800 \
   --ram-budget-mib 8192 \
   --vram-budget-mib cuda:0=4096 \
   --vram-budget-mib cuda:1=4096

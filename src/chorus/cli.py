@@ -144,9 +144,9 @@ def main() -> None:
     parser.add_argument(
         "--idle-timeout",
         type=_nonnegative_finite,
-        default=300.0,
+        default=1800.0,
         metavar="SECONDS",
-        help="Unload an idle model worker after SECONDS (default: 300; 0 unloads immediately).",
+        help="Unload an idle model worker after SECONDS (default: %(default)s; 0 unloads immediately).",
     )
     parser.add_argument(
         "--ram-budget-mib",
