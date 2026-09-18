@@ -37,7 +37,7 @@
         shellHook = ''
           uv sync --locked --python "$UV_PYTHON"
           export VIRTUAL_ENV="$PWD/.venv"
-          export PATH="$PWD/bin:$VIRTUAL_ENV/bin:$PATH"
+          export PATH="$VIRTUAL_ENV/bin:$PATH"
         '';
       };
     };

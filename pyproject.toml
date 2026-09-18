@@ -21,6 +21,10 @@ dependencies = [
   "lameenc==1.8.4",
 ]
 
+[project.scripts]
+serve-api = "chorus.cli:main"
+chorus-tts = "chorus.speak:main"
+
 [tool.uv]
 package = true
 # GPU wheels also provide CPUExecutionProvider; do not install both distributions.

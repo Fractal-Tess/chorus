@@ -12,7 +12,7 @@ serve-api --list-devices
 serve-api --engines kokoro --download-missing --devices cpu,cuda:0
 ```
 
-The development shell adds the launchers in `bin/` to `PATH`.
+The development shell adds the project virtualenv's `bin/` to `PATH`, where `uv sync` installs the `serve-api` console script.
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api --engines kokoro`. `serve-api --version` reports the release version.
 

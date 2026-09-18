@@ -25,7 +25,11 @@ tailwindcss \
   --minify
 ```
 
-Standalone Python commands live in `src/chorus/commands/`, their shell launchers in `bin/`, and browser assets and Tailwind configuration in `static/`. Piper and Kitten commands use the versioned local model directories; fetch their manifests' files first. Kitten's `--model` accepts a local directory, not a Hub repository. Generated audio and smoke reports belong in the ignored `outputs/` directory.
+`chorus-tts` (`src/chorus/speak.py`) synthesizes a single WAV from the shell for any engine, through the same registry the API uses, so it honours channel policy, device selection, and lazy loading. Browser assets and Tailwind configuration live in `static/`. Fetch an engine's manifest files before calling it. Generated audio and smoke reports belong in the ignored `outputs/` directory.
+
+```bash
+chorus-tts --engine kokoro --voice af_heart "A quiet test." -o outputs/kokoro.wav
+```
 
 Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device. Kokoro CUDA workers overlap up to two requests in one ONNX session without duplicating model weights; CPU and other engine workers serialize requests. Additional requests wait for a slot. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 

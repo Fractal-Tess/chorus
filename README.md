@@ -44,7 +44,7 @@ Clone the source without model binaries. Install Python 3.12, `uv`, Git, and the
 GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/Fractal-Tess/chorus.git
 cd chorus
 uv sync --locked --python 3.12
-./bin/serve-api --engines kokoro --download-missing --devices cpu
+uv run serve-api --engines kokoro --download-missing --devices cpu
 ```
 
 GitHub hosts source and lightweight LFS pointers, not model binaries. `--download-missing` downloads pinned weights from upstream. The shipped Kokoro policy defaults to GPU, so request the CPU channel explicitly:
