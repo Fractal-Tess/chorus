@@ -3,6 +3,7 @@
 ## 0.1.3 - 2026-09-18
 
 - Install shipped model manifests from the CLI instead of a Docker entrypoint or Nix launcher: any writable primary root resolves and downloads the shipped models, including a fresh `--models-dir`.
+- Offer a libstdc++ at least as new as the host system in the Nix dev shell, so host binaries that inherit its `LD_LIBRARY_PATH` (Hyprland clients, editors) no longer fail with a missing `GLIBCXX_3.4.35`.
 
 ## 0.1.2 - 2026-09-17
 

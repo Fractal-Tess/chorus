@@ -22,8 +22,11 @@
         ];
 
         env = {
+          # Interactive children (the editor, Hyprland clients, ...) inherit this
+          # path, so the libstdc++ offered here must be at least as new as the
+          # host system's; wheels in .venv still need one on NixOS.
           LD_LIBRARY_PATH = "/run/opengl-driver/lib:" + pkgs.lib.makeLibraryPath [
-            pkgs.stdenv.cc.cc
+            pkgs.gcc16.cc.lib
             pkgs.zlib
             pkgs.libsndfile
           ];
