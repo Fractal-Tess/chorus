@@ -4,7 +4,7 @@
 
 ## Run it
 
-The development flake in `nix/` provides Python 3.12, `uv`, Git LFS, FFmpeg, SoX, eSpeak NG, libsndfile, and Tailwind CSS. Run these commands from the repository root:
+The development flake in `nix/` provides Python 3.12, `uv`, Git LFS, FFmpeg, SoX, eSpeak NG, and libsndfile. Run these commands from the repository root:
 
 ```bash
 direnv allow

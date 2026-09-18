@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 - 2026-09-19
+
+- Render into two comparison slots instead of a single "latest render" panel. Auto alternates between them so the previous take survives, a linked playhead carries the position across when switching takes, and `A`/`B`/`Space` audition from the keyboard. Slots also swap, clear, and download individually, and the header warns when the two takes came from different scripts.
+- Drop Tailwind CSS for hand-written `static/app.css`, removing the generated stylesheet, its config, the `tailwindcss` dev-shell package, and the rebuild step. Browser assets are now plain HTML, CSS, and ES modules with no build.
+- Move slot playback into `static/player.js` so both slots share one implementation, and build all dynamic markup through the DOM rather than interpolated HTML strings.
+
 ## 0.1.4 - 2026-09-19
 
 - Replace the `bin/` shell launchers with `[project.scripts]` console scripts; the Nix dev shell now exposes them from the project virtualenv.

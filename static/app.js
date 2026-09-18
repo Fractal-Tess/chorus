@@ -1,163 +1,136 @@
-const state = {
-  engines: [],
-  models: [],
-  engine: null,
-  model: null,
-  channel: null,
-  generating: false,
-  audioBuffer: null,
-  waveform: [],
-  audioUrl: null,
+import { Slot, formatTime, peaksFrom } from './player.js';
+
+const TAGS = ['A', 'B'];
+const FIXED_SPEED_ENGINES = new Set(['pocket', 'breeze', 'fish']);
+const ENGLISH_ALIGNMENT = new Set(['a', 'b', 'en', 'en-US', 'en-us', 'en-gb', 'english']);
+const VOICE_INPUT_LABELS = { description: 'Voice design', style: 'Style control' };
+const LANGUAGE_NAMES = {
+  a: 'American English', b: 'British English', e: 'Spanish', f: 'French', h: 'Hindi', i: 'Italian',
+  j: 'Japanese', p: 'Portuguese', z: 'Mandarin', en: 'English', 'en-US': 'English (US)',
+  english: 'English', french_24l: 'French', spanish_24l: 'Spanish', german_24l: 'German',
+  italian_24l: 'Italian', portuguese_24l: 'Portuguese', ko: 'Korean', ja: 'Japanese', ar: 'Arabic',
+  bg: 'Bulgarian', cs: 'Czech', da: 'Danish', de: 'German', el: 'Greek', es: 'Spanish',
+  et: 'Estonian', fi: 'Finnish', fr: 'French', hi: 'Hindi', hr: 'Croatian', hu: 'Hungarian',
+  id: 'Indonesian', it: 'Italian', lt: 'Lithuanian', lv: 'Latvian', nl: 'Dutch', pl: 'Polish',
+  pt: 'Portuguese', ro: 'Romanian', ru: 'Russian', sk: 'Slovak', sl: 'Slovenian', sv: 'Swedish',
+  tr: 'Turkish', uk: 'Ukrainian', vi: 'Vietnamese', zh: 'Chinese', na: 'Language agnostic',
+};
+const VOICE_LANGUAGE_HINTS = {
+  giovanni: 'italian_24l', lola: 'spanish_24l', juergen: 'german_24l',
+  rafael: 'portuguese_24l', estelle: 'french_24l',
 };
 
-const elements = {
-  engineGrid: document.querySelector('#engine-grid'),
-  form: document.querySelector('#speech-form'),
-  text: document.querySelector('#speech-text'),
-  charCount: document.querySelector('#char-count'),
-  voice: document.querySelector('#voice-select'),
-  voiceDescription: document.querySelector('#voice-description'),
-  voiceLabel: document.querySelector('#voice-label'),
-  voiceTitle: document.querySelector('#voice-title'),
-  voiceChevron: document.querySelector('#voice-chevron'),
-  narrationBadge: document.querySelector('#narration-badge'),
-  language: document.querySelector('#language-select'),
-  speed: document.querySelector('#speed-input'),
-  speedValue: document.querySelector('#speed-value'),
-  channel: document.querySelector('#channel-select'),
-  channelDefault: document.querySelector('#channel-default'),
-  channelStatus: document.querySelector('#channel-status'),
-  modelField: document.querySelector('#model-field'),
-  model: document.querySelector('#model-select'),
-  lavaSr: document.querySelector('#lava-sr-input'),
-  forceAlign: document.querySelector('#force-align-input'),
-  forceAlignLabel: document.querySelector('#force-align-label'),
-  formNote: document.querySelector('#form-note'),
-  generateButton: document.querySelector('#generate-button'),
-  generateIcon: document.querySelector('#generate-icon'),
-  generateLabel: document.querySelector('#generate-label'),
-  resultPanel: document.querySelector('#result-panel'),
-  resultTitle: document.querySelector('#result-title'),
-  resultEnhancement: document.querySelector('#result-enhancement'),
-  resultAlignment: document.querySelector('#result-alignment'),
-  resultTimings: document.querySelector('#result-timings'),
-  alignmentPanel: document.querySelector('#alignment-panel'),
-  alignmentWords: document.querySelector('#alignment-words'),
-  downloadLink: document.querySelector('#download-link'),
-  audio: document.querySelector('#audio-player'),
-  playButton: document.querySelector('#play-button'),
-  playIcon: document.querySelector('#play-icon'),
-  waveform: document.querySelector('#waveform'),
-  currentTime: document.querySelector('#current-time'),
-  totalTime: document.querySelector('#total-time'),
-  engineName: document.querySelector('#engine-name'),
-  engineSummary: document.querySelector('#engine-summary'),
-  voiceCount: document.querySelector('#voice-count'),
-  sampleRate: document.querySelector('#sample-rate'),
-  loadedBadge: document.querySelector('#loaded-badge'),
-  errorPanel: document.querySelector('#error-panel'),
-  healthDot: document.querySelector('#health-dot'),
-  healthLabel: document.querySelector('#health-label'),
-  diagnosticDevices: document.querySelector('#diagnostic-devices'),
-  diagnosticModels: document.querySelector('#diagnostic-models'),
-  diagnosticVram: document.querySelector('#diagnostic-vram'),
-  diagnosticRequests: document.querySelector('#diagnostic-requests'),
-};
+const $ = (selector) => document.querySelector(selector);
+const el = Object.fromEntries([
+  'engine-chips', 'composer', 'speech-text', 'char-count', 'voice-field', 'voice-title',
+  'voice-select', 'voice-description', 'language-select', 'model-select', 'speed-input',
+  'speed-value', 'channel-select', 'channel-default', 'channel-status', 'lava-sr-input',
+  'force-align-input', 'form-note', 'generate-button', 'generate-label', 'engine-name',
+  'engine-summary', 'voice-count', 'sample-rate', 'loaded-badge', 'error-panel', 'health-dot',
+  'health-label', 'diagnostic-devices', 'diagnostic-models', 'diagnostic-vram',
+  'diagnostic-requests', 'slots', 'audition-switch', 'stop-button', 'swap-button',
+  'link-playhead', 'compare-hint', 'alignment-panel', 'alignment-owner', 'alignment-words',
+  'target-switch', 'theme-switch', 'server-address',
+].map((id) => [id.replace(/-(.)/g, (_, char) => char.toUpperCase()), $(`#${id}`)]));
 
-const languageNames = {
-  a: 'American English', b: 'British English', e: 'Spanish', f: 'French', h: 'Hindi', i: 'Italian', j: 'Japanese', p: 'Portuguese', z: 'Mandarin',
-  en: 'English', 'en-US': 'English (US)', english: 'English', french_24l: 'French', spanish_24l: 'Spanish', german_24l: 'German', italian_24l: 'Italian', portuguese_24l: 'Portuguese',
-  ko: 'Korean', ja: 'Japanese', ar: 'Arabic', bg: 'Bulgarian', cs: 'Czech', da: 'Danish', de: 'German', el: 'Greek', es: 'Spanish', et: 'Estonian', fi: 'Finnish', fr: 'French', hi: 'Hindi', hr: 'Croatian', hu: 'Hungarian', id: 'Indonesian', it: 'Italian', lt: 'Lithuanian', lv: 'Latvian', nl: 'Dutch', pl: 'Polish', pt: 'Portuguese', ro: 'Romanian', ru: 'Russian', sk: 'Slovak', sl: 'Slovenian', sv: 'Swedish', tr: 'Turkish', uk: 'Ukrainian', vi: 'Vietnamese', na: 'Language agnostic',
-  zh: 'Chinese',
-};
+const state = { engines: [], models: [], engine: null, model: null, channel: null, target: 'auto', focus: null, generating: false };
 
-const englishAlignmentLanguages = new Set(['a', 'b', 'en', 'en-US', 'en-us', 'en-gb', 'english']);
-const voiceInputLabels = { description: 'Voice design', style: 'Style control' };
+const slots = TAGS.map((tag) => {
+  const node = $('#slot-template').content.firstElementChild.cloneNode(true);
+  el.slots.append(node);
+  const slot = new Slot(node, onSlotEvent);
+  slot.setTag(tag);
+  return slot;
+});
 
-const narrationFavorites = {
-  pocket: ['peter_yearsley'],
-  kokoro: ['af_heart', 'af_bella', 'bf_emma'],
-  supertonic: ['M5', 'F5', 'M2', 'M3', 'F3'],
-};
+/* ---------- comparison ---------- */
 
-function escapeHtml(value) {
-  const node = document.createElement('div');
-  node.textContent = value;
-  return node.innerHTML;
-}
-
-function setTheme(mode) {
-  localStorage.setItem('chorus-theme', mode);
-  document.documentElement.dataset.theme = mode;
-  const dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.classList.toggle('dark', dark);
-  updateThemeButtons();
-  requestAnimationFrame(drawWaveform);
-}
-
-function updateThemeButtons() {
-  const active = document.documentElement.dataset.theme || 'system';
-  document.querySelectorAll('.theme-button').forEach((button) => {
-    const selected = button.dataset.themeChoice === active;
-    button.classList.toggle('bg-slate-100', selected);
-    button.classList.toggle('text-slate-950', selected);
-    button.classList.toggle('dark:bg-slate-700', selected);
-    button.classList.toggle('dark:text-white', selected);
-    button.setAttribute('aria-pressed', String(selected));
-  });
-}
-
-function renderEngineCards() {
-  elements.engineGrid.innerHTML = state.engines.map((engine) => {
-    const active = engine.id === state.engine?.id;
-    return `
-      <button type="button" data-engine="${engine.id}" aria-pressed="${active}" class="engine-card group min-h-28 rounded-2xl border p-4 text-left transition ${active ? 'border-slate-950 bg-slate-950 text-white shadow-lg shadow-slate-900/15 dark:border-white dark:bg-white dark:text-slate-950' : 'border-slate-200/80 bg-white/70 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-900/65 dark:hover:border-slate-700 dark:hover:bg-slate-900'}">
-        <span class="mb-6 flex items-center justify-between gap-2">
-          <span class="font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${active ? 'text-slate-400' : 'text-slate-400'}">${engine.loaded ? 'Warm' : 'Cold'}</span>
-          <span class="size-1.5 rounded-full ${engine.loaded ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}"></span>
-        </span>
-        <span class="block text-sm font-black tracking-[-0.02em]">${escapeHtml(engine.label)}</span>
-        <span class="mt-1 block text-[10px] ${active ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}">${voiceInputLabels[engine.voice_input] || `${engine.voices.length} ${engine.voices.length === 1 ? 'voice' : 'voices'}`}</span>
-      </button>`;
-  }).join('');
-
-  document.querySelectorAll('.engine-card').forEach((button) => {
-    button.addEventListener('click', () => selectEngine(button.dataset.engine));
-  });
-}
-
-function fillSelect(select, values, selected, labeler = (value) => value) {
-  select.innerHTML = values.map((value) => `<option value="${escapeHtml(value)}" ${value === selected ? 'selected' : ''}>${escapeHtml(labeler(value))}</option>`).join('');
-}
-
-function fillVoiceSelect(engine) {
-  const favorites = narrationFavorites[engine.id] || [];
-  if (!favorites.length) {
-    fillSelect(elements.voice, engine.voices, engine.default_voice);
-    return;
+function onSlotEvent(slot, event) {
+  if (event === 'play') {
+    slots.forEach((other) => other !== slot && other.pause());
+    setFocus(slot);
+  } else if (event === 'load') {
+    setFocus(slot);
+  } else if (event === 'clear' && state.focus === slot) {
+    setFocus(slots.find((other) => !other.isEmpty) || null);
   }
-  const favoriteSet = new Set(favorites);
-  const option = (voice) => `<option value="${escapeHtml(voice)}" ${voice === engine.default_voice ? 'selected' : ''}>${escapeHtml(voice)}</option>`;
-  elements.voice.innerHTML = `
-    <optgroup label="Narration favorites">${favorites.filter((voice) => engine.voices.includes(voice)).map(option).join('')}</optgroup>
-    <optgroup label="All voices">${engine.voices.filter((voice) => !favoriteSet.has(voice)).map(option).join('')}</optgroup>`;
+  refreshCompare();
 }
 
-function updateNarrationBadge() {
-  const favorites = narrationFavorites[state.engine?.id] || [];
-  elements.narrationBadge.classList.toggle('hidden', !favorites.includes(elements.voice.value));
+function setFocus(slot) {
+  state.focus = slot;
+  const words = slot?.take?.alignment?.words || [];
+  el.alignmentPanel.hidden = words.length === 0;
+  el.alignmentOwner.textContent = slot ? slot.tag : '—';
+  el.alignmentWords.replaceChildren(...words.map((word) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'word';
+    button.title = `Confidence ${(word.score * 100).toFixed(1)}%`;
+    button.append(
+      Object.assign(document.createElement('b'), { textContent: word.word }),
+      Object.assign(document.createElement('span'), { textContent: `${word.start_ms}–${word.end_ms} ms` }),
+    );
+    button.addEventListener('click', () => slot.seek(word.start_ms / 1000));
+    return button;
+  }));
 }
 
-function updateAlignmentAvailability() {
-  const supported = englishAlignmentLanguages.has(elements.language.value);
-  elements.forceAlign.disabled = !supported;
-  if (!supported) elements.forceAlign.checked = false;
-  elements.forceAlignLabel.classList.toggle('cursor-pointer', supported);
-  elements.forceAlignLabel.classList.toggle('cursor-not-allowed', !supported);
-  elements.forceAlignLabel.classList.toggle('opacity-50', !supported);
-  elements.forceAlignLabel.title = supported
-    ? 'Generate English word timestamps with Wav2Vec2'
-    : 'Word alignment currently supports English only';
+function refreshCompare() {
+  const filled = slots.filter((slot) => !slot.isEmpty);
+  el.auditionSwitch.querySelectorAll('button').forEach((button, index) => {
+    button.disabled = slots[index].isEmpty;
+    button.textContent = `Play ${TAGS[index]}`;
+    button.setAttribute('aria-pressed', String(slots[index].playing));
+  });
+  el.stopButton.disabled = !slots.some((slot) => slot.playing);
+  el.swapButton.disabled = filled.length === 0;
+  el.compareHint.textContent = filled.length < 2
+    ? 'Render twice and switch between the takes without losing your place.'
+    : slots[0].take.script === slots[1].take.script
+      ? 'Both takes use the same script, so the playhead lines up.'
+      : 'Heads up: these takes were rendered from different scripts.';
+}
+
+function audition(index) {
+  const slot = slots[index];
+  if (slot.isEmpty) return;
+  const linked = el.linkPlayhead.checked && state.focus && state.focus !== slot;
+  slot.play(linked ? state.focus.time : null);
+}
+
+function swapSlots() {
+  slots.reverse();
+  slots.forEach((slot, index) => slot.setTag(TAGS[index]));
+  el.slots.append(...slots.map((slot) => slot.node));
+  setFocus(state.focus);
+  refreshCompare();
+}
+
+function targetSlot() {
+  if (state.target !== 'auto') return slots[state.target];
+  return slots.find((slot) => slot.isEmpty) || slots.find((slot) => slot !== state.focus) || slots[0];
+}
+
+/* ---------- catalog and form ---------- */
+
+function fillSelect(select, values, selected, label = (value) => value) {
+  select.replaceChildren(...values.map((value) => new Option(label(value), value, false, value === selected)));
+}
+
+function renderEngineChips() {
+  el.engineChips.replaceChildren(...state.engines.map((engine) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.setAttribute('aria-pressed', String(engine.id === state.engine?.id));
+    chip.title = engine.loaded ? 'Model is warm' : 'First render loads the model';
+    const dot = document.createElement('span');
+    dot.className = `chip__dot${engine.loaded ? ' is-warm' : ''}`;
+    chip.append(dot, engine.label);
+    chip.addEventListener('click', () => selectEngine(engine.id));
+    return chip;
+  }));
 }
 
 function channelStatus(channel) {
@@ -172,264 +145,130 @@ function channelLabel(status) {
   return `${status.id.toUpperCase()} — ready`;
 }
 
-function updateChannelAvailability() {
+function refreshChannel() {
   const configured = state.model?.default_channel || 'cpu';
-  elements.channelDefault.textContent = `Default ${configured.toUpperCase()}`;
-  elements.channel.innerHTML = ['cpu', 'gpu'].map((channel) => {
+  el.channelDefault.textContent = `Default ${configured.toUpperCase()}`;
+  el.channelSelect.replaceChildren(...['cpu', 'gpu'].map((channel) => {
     const status = channelStatus(channel);
-    return `<option value="${channel}" ${state.channel === channel ? 'selected' : ''} ${status.available ? '' : 'disabled'}>${channelLabel(status)}</option>`;
-  }).join('');
-  elements.channel.value = state.channel;
-  const selectedStatus = channelStatus(state.channel);
-  const unavailable = !selectedStatus.available;
-  elements.channelStatus.textContent = unavailable
-    ? (state.model?.channels.some((status) => status.available)
-      ? `${channelLabel(selectedStatus)}. Choose an available channel to generate.`
-      : `${channelLabel(selectedStatus)}. No channel is available; check server policy and hardware.`)
-    : `${channelLabel(selectedStatus)} · configured default is ${configured.toUpperCase()}.`;
-  elements.channelStatus.className = `mt-1 text-[10px] ${unavailable ? 'text-red-500 dark:text-red-400' : 'text-slate-400'}`;
-  elements.generateButton.disabled = unavailable || state.generating;
-  elements.model.disabled = state.generating;
-  elements.channel.disabled = state.generating;
+    const option = new Option(channelLabel(status), channel, false, channel === state.channel);
+    option.disabled = !status.available;
+    return option;
+  }));
+  el.channelSelect.value = state.channel;
+
+  const status = channelStatus(state.channel);
+  const anyAvailable = Boolean(state.model?.channels?.some((item) => item.available));
+  el.channelStatus.textContent = status.available
+    ? `${channelLabel(status)} · configured default is ${configured.toUpperCase()}.`
+    : `${channelLabel(status)}. ${anyAvailable ? 'Choose an available channel.' : 'No channel is available; check server policy and hardware.'}`;
+  el.channelStatus.classList.toggle('is-bad', !status.available);
+  el.generateButton.disabled = !status.available || state.generating;
+  el.modelSelect.disabled = state.generating;
+  el.channelSelect.disabled = state.generating;
+}
+
+function refreshAlignmentAvailability() {
+  const supported = ENGLISH_ALIGNMENT.has(el.languageSelect.value);
+  el.forceAlignInput.disabled = !supported || state.generating;
+  if (!supported) el.forceAlignInput.checked = false;
+  el.forceAlignInput.parentElement.title = supported
+    ? 'Generate English word timestamps with Wav2Vec2'
+    : 'Word alignment currently supports English only';
 }
 
 function selectEngine(id) {
-  const previousModel = state.model;
-  const previousChannel = state.channel;
+  const previous = state.model;
   state.engine = state.engines.find((engine) => engine.id === id);
   if (!state.engine) return;
   const models = state.models.filter((model) => model.engine === id);
-  state.model = models.find((model) => model.model === previousModel?.model) || models.find((model) => model.default) || models[0] || null;
-  state.channel = previousModel?.engine === id && state.model?.model === previousModel.model
-    ? previousChannel
-    : state.model?.default_channel || 'cpu';
-  fillSelect(elements.model, models.map((model) => model.model), state.model?.model);
-
-  const freeformVoice = Boolean(voiceInputLabels[state.engine.voice_input]);
-  const styleInput = state.engine.voice_input === 'style';
-  elements.voice.hidden = freeformVoice;
-  elements.voiceChevron.classList.toggle('hidden', freeformVoice);
-  elements.voiceDescription.hidden = !freeformVoice;
-  elements.voiceLabel.htmlFor = freeformVoice ? 'voice-description' : 'voice-select';
-  elements.voiceTitle.textContent = styleInput ? 'Style' : 'Voice';
-  elements.voiceDescription.setAttribute('aria-label', styleInput ? 'Style direction' : 'Voice description');
-  elements.voiceDescription.placeholder = styleInput ? 'e.g. calm narration (optional)' : 'Describe a voice (optional)';
-  fillVoiceSelect(state.engine);
-  fillSelect(elements.language, state.engine.languages, state.engine.default_language, (value) => languageNames[value] || value);
-  updateNarrationBadge();
-  updateAlignmentAvailability();
-  updateChannelAvailability();
-  elements.engineName.textContent = state.engine.label;
-  elements.engineSummary.textContent = state.engine.summary;
-  elements.voiceCount.textContent = voiceInputLabels[state.engine.voice_input] || state.engine.voices.length;
-  elements.sampleRate.textContent = `${(state.engine.sample_rate / 1000).toFixed(state.engine.sample_rate % 1000 ? 2 : 0)} kHz`;
-  elements.loadedBadge.textContent = state.engine.loaded ? 'Warm' : 'Cold';
-  elements.loadedBadge.className = state.engine.loaded
-    ? 'rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
-    : 'rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400';
-
-  const supportsSpeed = !['pocket', 'breeze', 'fish'].includes(id);
-  elements.speed.disabled = !supportsSpeed;
-  if (!supportsSpeed) {
-    elements.speed.value = '1';
-    elements.speedValue.textContent = '1.00×';
-    elements.formNote.textContent = styleInput
-      ? 'Use [whisper] or [excited] in the text for inline direction. Speaking speed is fixed.'
-      : `${state.engine.label} uses a fixed speaking speed.`;
-  } else {
-    elements.formNote.textContent = state.engine.loaded ? 'Model is warm and ready.' : 'First render loads the model; later renders are faster.';
+  state.model = models.find((model) => model.model === previous?.model)
+    || models.find((model) => model.default) || models[0] || null;
+  if (previous?.engine !== id || state.model?.model !== previous?.model) {
+    state.channel = state.model?.default_channel || 'cpu';
   }
+  fillSelect(el.modelSelect, models.map((model) => model.model), state.model?.model);
+
+  const freeform = Boolean(VOICE_INPUT_LABELS[state.engine.voice_input]);
+  const style = state.engine.voice_input === 'style';
+  el.voiceSelect.hidden = freeform;
+  el.voiceDescription.hidden = !freeform;
+  el.voiceField.htmlFor = freeform ? 'voice-description' : 'voice-select';
+  el.voiceTitle.textContent = style ? 'Style' : 'Voice';
+  el.voiceDescription.placeholder = style ? 'e.g. calm narration (optional)' : 'Describe a voice (optional)';
+  fillSelect(el.voiceSelect, state.engine.voices, state.engine.default_voice);
+  fillSelect(el.languageSelect, state.engine.languages, state.engine.default_language,
+    (value) => LANGUAGE_NAMES[value] || value);
+
+  el.engineName.textContent = state.engine.label;
+  el.engineSummary.textContent = state.engine.summary;
+  el.voiceCount.textContent = VOICE_INPUT_LABELS[state.engine.voice_input] || state.engine.voices.length;
+  el.sampleRate.textContent = `${(state.engine.sample_rate / 1000).toFixed(state.engine.sample_rate % 1000 ? 2 : 0)} kHz`;
+  el.loadedBadge.textContent = state.engine.loaded ? 'Warm' : 'Cold';
+  el.loadedBadge.className = state.engine.loaded ? 'badge badge--ok' : 'badge';
+
+  const adjustable = !FIXED_SPEED_ENGINES.has(id);
+  el.speedInput.disabled = !adjustable;
+  if (!adjustable) {
+    el.speedInput.value = '1';
+    el.speedValue.textContent = '1.00×';
+  }
+  el.formNote.textContent = !adjustable && style
+    ? 'Use [whisper] or [excited] inline for direction. Speaking speed is fixed.'
+    : !adjustable
+      ? `${state.engine.label} uses a fixed speaking speed.`
+      : 'Models load on first use, then stay warm.';
+
   hideError();
-  renderEngineCards();
+  refreshAlignmentAvailability();
+  refreshChannel();
+  renderEngineChips();
 }
 
-function inferLanguage(engine, voice) {
-  if (engine.id === 'kokoro') return voice.charAt(0);
-  if (engine.id === 'pocket') {
-    const map = { giovanni: 'italian_24l', lola: 'spanish_24l', juergen: 'german_24l', rafael: 'portuguese_24l', estelle: 'french_24l' };
-    return map[voice] || 'english';
-  }
-  return null;
-}
-
-function formatTime(seconds) {
-  if (!Number.isFinite(seconds)) return '0:00';
-  const minutes = Math.floor(seconds / 60);
-  return `${minutes}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
-}
-
-function readTiming(response, header) {
-  const value = response.headers.get(header);
-  if (value === null) return null;
-  const milliseconds = Number(value);
-  return Number.isFinite(milliseconds) ? milliseconds : null;
-}
-
-function formatMilliseconds(milliseconds) {
-  return `${Math.round(milliseconds).toLocaleString()} ms`;
-}
-
-function renderAlignment(alignment) {
-  elements.alignmentWords.replaceChildren();
-  const words = alignment?.words || [];
-  elements.alignmentPanel.classList.toggle('hidden', words.length === 0);
-  elements.resultAlignment.classList.toggle('hidden', words.length === 0);
-  for (const word of words) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left transition hover:border-orange-300 hover:bg-orange-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-orange-700 dark:hover:bg-slate-800';
-    button.title = `Confidence ${(word.score * 100).toFixed(1)}%`;
-
-    const label = document.createElement('span');
-    label.className = 'block text-xs font-semibold text-slate-700 dark:text-slate-200';
-    label.textContent = word.word;
-    const timing = document.createElement('span');
-    timing.className = 'block font-mono text-[9px] text-slate-400';
-    timing.textContent = `${word.start_ms}–${word.end_ms} ms`;
-    button.append(label, timing);
-    button.addEventListener('click', () => {
-      elements.audio.currentTime = word.start_ms / 1_000;
-      drawWaveform();
-    });
-    elements.alignmentWords.append(button);
-  }
-}
-
-function setPlaying(playing) {
-  elements.playButton.setAttribute('aria-label', playing ? 'Pause audio' : 'Play audio');
-  elements.playIcon.classList.toggle('translate-x-px', !playing);
-  elements.playIcon.innerHTML = playing
-    ? '<path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/>'
-    : '<path d="m8 5 11 7-11 7V5Z"/>';
-}
-
-function buildWaveform(channelData, count = 180) {
-  const size = Math.max(1, Math.floor(channelData.length / count));
-  const values = [];
-  let peak = 0;
-  for (let index = 0; index < count; index += 1) {
-    let maximum = 0;
-    const start = index * size;
-    const end = Math.min(start + size, channelData.length);
-    for (let sample = start; sample < end; sample += 1) maximum = Math.max(maximum, Math.abs(channelData[sample]));
-    values.push(maximum);
-    peak = Math.max(peak, maximum);
-  }
-  return values.map((value) => Math.max(0.06, value / (peak || 1)));
-}
-
-function drawWaveform() {
-  if (!state.waveform.length) return;
-  const canvas = elements.waveform;
-  const bounds = canvas.getBoundingClientRect();
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.round(bounds.width * ratio));
-  canvas.height = Math.max(1, Math.round(bounds.height * ratio));
-  const context = canvas.getContext('2d');
-  context.scale(ratio, ratio);
-  context.clearRect(0, 0, bounds.width, bounds.height);
-
-  const styles = getComputedStyle(document.documentElement);
-  const idle = styles.getPropertyValue('--wave-idle').trim();
-  const active = styles.getPropertyValue('--wave-active').trim();
-  const progress = elements.audio.duration ? elements.audio.currentTime / elements.audio.duration : 0;
-  const gap = 2;
-  const barWidth = Math.max(1.5, (bounds.width - gap * (state.waveform.length - 1)) / state.waveform.length);
-  const center = bounds.height / 2;
-
-  state.waveform.forEach((level, index) => {
-    const height = Math.max(4, level * (bounds.height - 8));
-    const x = index * (barWidth + gap);
-    context.fillStyle = index / state.waveform.length <= progress ? active : idle;
-    context.beginPath();
-    context.roundRect(x, center - height / 2, barWidth, height, barWidth / 2);
-    context.fill();
-  });
-}
-
-function showError(message) {
-  elements.errorPanel.textContent = message;
-  elements.errorPanel.classList.remove('hidden');
-}
-
-function hideError() {
-  elements.errorPanel.classList.add('hidden');
-  elements.errorPanel.textContent = '';
-}
-
-function formatBytes(value) {
-  if (!Number.isFinite(value)) return '—';
-  if (value < 1024 * 1024) return `${Math.round(value / 1024).toLocaleString()} KiB`;
-  return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
-}
-
-async function refreshDiagnostics() {
-  const [devicesResponse, resourcesResponse] = await Promise.all([
-    fetch('/v1/devices'),
-    fetch('/v1/resources'),
+async function refreshCatalog(keepSelection = true) {
+  const [engines, models] = await Promise.all([
+    fetch('/v1/engines').then(readJson),
+    fetch('/v1/models').then(readJson),
   ]);
-  if (!devicesResponse.ok || !resourcesResponse.ok) return;
-  const devices = await devicesResponse.json();
-  const resources = await resourcesResponse.json();
-  elements.diagnosticDevices.textContent = (devices.devices || []).map((device) => `${device.id}${device.enabled ? '' : ' (disabled)'}`).join(', ') || 'None detected';
-  const loaded = resources.models || [];
-  elements.diagnosticModels.textContent = loaded.length
-    ? loaded.map((item) => `${item.engine}/${item.model} · ${item.device}`).join('; ')
-    : 'None loaded';
-  const vram = resources.vram_used_bytes || {};
-  elements.diagnosticVram.textContent = Object.keys(vram).length
-    ? Object.entries(vram).map(([device, bytes]) => `${device}: ${formatBytes(bytes)}`).join(' · ')
-    : 'No VRAM usage reported';
-  const queue = resources.gpu_queue;
-  elements.diagnosticRequests.textContent = queue
-    ? `GPU ${queue.running ?? 0} running · ${queue.waiting ?? 0} waiting${queue.capacity != null ? ` / ${queue.capacity}` : ''}`
-    : loaded.map((item) => `${item.engine}/${item.model}: ${item.active_requests ?? 0}`).join(' · ') || 'No active requests';
-}
-
-async function refreshEngines(keepSelection = true) {
-  const [enginesResponse, modelsResponse] = await Promise.all([
-    fetch('/v1/engines'),
-    fetch('/v1/models'),
-  ]);
-  if (!enginesResponse.ok || !modelsResponse.ok) throw new Error('Could not load engine catalog.');
-  const [enginesData, modelsData] = await Promise.all([enginesResponse.json(), modelsResponse.json()]);
-  const selectedId = keepSelection ? state.engine?.id : null;
-  state.engines = enginesData.engines;
-  state.models = modelsData.models;
-  selectEngine(selectedId || state.engines[0].id);
+  state.engines = engines.engines;
+  state.models = models.models;
+  selectEngine((keepSelection && state.engine?.id) || state.engines[0].id);
   refreshDiagnostics().catch(() => {});
 }
 
-async function generateSpeech(event) {
+function readJson(response) {
+  if (!response.ok) throw new Error(`${response.url} failed with status ${response.status}.`);
+  return response.json();
+}
+
+/* ---------- generation ---------- */
+
+function readTiming(response, header) {
+  const value = Number(response.headers.get(header));
+  return Number.isFinite(value) && response.headers.has(header) ? value : null;
+}
+
+const milliseconds = (value) => `${Math.round(value).toLocaleString()} ms`;
+
+async function generate(event) {
   event.preventDefault();
   if (state.generating) return;
   hideError();
-  const text = elements.text.value.trim();
-  if (!text) {
-    showError('Enter some text before generating speech.');
-    return;
-  }
-  const selectedStatus = channelStatus(state.channel);
-  if (!selectedStatus.available) {
-    showError(`${channelLabel(selectedStatus)}. Choose an available channel to generate.`);
-    updateChannelAvailability();
-    return;
-  }
-  const useLavaSr = elements.lavaSr.checked;
-  const useForceAlign = elements.forceAlign.checked;
-  const voice = voiceInputLabels[state.engine.voice_input]
-    ? elements.voiceDescription.value.trim() || null
-    : elements.voice.value;
+  const script = el.speechText.value.trim();
+  if (!script) return showError('Enter some text before generating speech.');
+  const status = channelStatus(state.channel);
+  if (!status.available) return showError(`${channelLabel(status)}. Choose an available channel to generate.`);
+
+  const freeform = Boolean(VOICE_INPUT_LABELS[state.engine.voice_input]);
+  const voice = freeform ? el.voiceDescription.value.trim() || null : el.voiceSelect.value;
+  const slot = targetSlot();
 
   state.generating = true;
-  updateChannelAvailability();
-  elements.lavaSr.disabled = true;
-  elements.forceAlign.disabled = true;
-  elements.generateIcon.classList.add('animate-spin');
-  elements.generateIcon.innerHTML = '<path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round"/>';
+  el.lavaSrInput.disabled = true;
+  el.forceAlignInput.disabled = true;
+  refreshChannel();
   const started = performance.now();
-  const timer = setInterval(() => {
-    elements.generateLabel.textContent = `Generating ${((performance.now() - started) / 1000).toFixed(1)}s`;
+  const ticker = setInterval(() => {
+    el.generateLabel.textContent = `Generating into ${slot.tag} · ${((performance.now() - started) / 1000).toFixed(1)}s`;
   }, 100);
 
   try {
@@ -440,147 +279,206 @@ async function generateSpeech(event) {
         engine: state.engine.id,
         model: state.model?.model,
         channel: state.channel,
-        input: text,
+        input: script,
         voice,
-        language: elements.language.value,
-        speed: Number(elements.speed.value),
-        lava_sr: useLavaSr,
-        force_align: useForceAlign,
+        language: el.languageSelect.value,
+        speed: Number(el.speedInput.value),
+        lava_sr: el.lavaSrInput.checked,
+        force_align: el.forceAlignInput.checked,
       }),
     });
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || `Synthesis failed with status ${response.status}.`);
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Synthesis failed with status ${response.status}.`);
     }
-    const enhanced = response.headers.get('X-LavaSR-Applied') === 'true';
-    const alignmentUrl = response.headers.get('X-Alignment-Url');
-    const timings = {
-      queue: readTiming(response, 'X-Queue-Time-Ms'),
-      inference: readTiming(response, 'X-Inference-Time-Ms'),
-      lavaSr: readTiming(response, 'X-LavaSR-Time-Ms'),
-      alignment: readTiming(response, 'X-Alignment-Time-Ms'),
-      total: readTiming(response, 'X-Backend-Time-Ms'),
-    };
-    let alignment = null;
-    if (alignmentUrl) {
-      const alignmentResponse = await fetch(alignmentUrl);
-      if (!alignmentResponse.ok) throw new Error('Generated word alignment could not be retrieved.');
-      alignment = await alignmentResponse.json();
-    }
-
-    const bytes = await response.arrayBuffer();
-    if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
-    state.audioUrl = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
-    elements.audio.src = state.audioUrl;
-    elements.downloadLink.href = state.audioUrl;
-    elements.downloadLink.download = `${state.engine.id}${enhanced ? '-lavasr' : ''}${alignment ? '-aligned' : ''}.wav`;
-
-    const audioContext = new AudioContext();
-    state.audioBuffer = await audioContext.decodeAudioData(bytes.slice(0));
-    state.waveform = buildWaveform(state.audioBuffer.getChannelData(0));
-    await audioContext.close();
-
-    elements.resultTitle.textContent = `${state.engine.label}${voice ? ` · ${voice}` : ''}`;
-    elements.resultEnhancement.classList.toggle('hidden', !enhanced);
-    renderAlignment(alignment);
-    const timingParts = [];
-    if (timings.inference !== null) timingParts.push(`Inference: ${formatMilliseconds(timings.inference)}`);
-    if (enhanced && timings.lavaSr !== null) timingParts.push(`LavaSR: ${formatMilliseconds(timings.lavaSr)}`);
-    if (alignment && timings.alignment !== null) timingParts.push(`Alignment: ${formatMilliseconds(timings.alignment)}`);
-    if (timings.queue !== null && timings.queue >= 1) timingParts.push(`Queue: ${formatMilliseconds(timings.queue)}`);
-    if (timings.total !== null) timingParts.push(`Backend total: ${formatMilliseconds(timings.total)}`);
-    elements.resultTimings.textContent = timingParts.join(' · ');
-    elements.totalTime.textContent = formatTime(state.audioBuffer.duration);
-    elements.currentTime.textContent = '0:00';
-    elements.resultPanel.classList.remove('hidden');
-    setPlaying(false);
-    requestAnimationFrame(drawWaveform);
-    await refreshEngines(true);
+    slot.load(await readTake(response, script, voice));
+    await refreshCatalog(true);
   } catch (error) {
     showError(error.message || 'Synthesis failed.');
   } finally {
-    clearInterval(timer);
+    clearInterval(ticker);
     state.generating = false;
-    elements.lavaSr.disabled = false;
-    updateAlignmentAvailability();
-    updateChannelAvailability();
-    elements.generateIcon.classList.remove('animate-spin');
-    elements.generateIcon.innerHTML = '<path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>';
-    elements.generateLabel.textContent = 'Generate speech';
+    el.lavaSrInput.disabled = false;
+    el.generateLabel.textContent = 'Generate speech';
+    refreshAlignmentAvailability();
+    refreshChannel();
   }
+}
+
+async function readTake(response, script, voice) {
+  const enhanced = response.headers.get('X-LavaSR-Applied') === 'true';
+  const alignmentUrl = response.headers.get('X-Alignment-Url');
+  const alignment = alignmentUrl ? await fetch(alignmentUrl).then(readJson) : null;
+  const bytes = await response.arrayBuffer();
+
+  const context = new AudioContext();
+  const buffer = await context.decodeAudioData(bytes.slice(0));
+  await context.close();
+
+  const inference = readTiming(response, 'X-Inference-Time-Ms');
+  const total = readTiming(response, 'X-Backend-Time-Ms');
+  const model = response.headers.get('X-TTS-Model') || state.model?.model || '';
+  const language = LANGUAGE_NAMES[el.languageSelect.value] || el.languageSelect.value;
+  const speed = Number(el.speedInput.value);
+
+  return {
+    url: URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' })),
+    peaks: peaksFrom(buffer.getChannelData(0)),
+    duration: buffer.duration,
+    script,
+    alignment,
+    title: `${state.engine.label} · ${model}`,
+    subtitle: [voice, language, `${speed.toFixed(2)}×`].filter(Boolean).join(' · '),
+    filename: `${state.engine.id}-${model}${enhanced ? '-lavasr' : ''}.wav`,
+    badges: [enhanced && 'LavaSR 48 kHz', alignment && 'Word aligned'].filter(Boolean),
+    meta: [
+      ['Device', response.headers.get('X-TTS-Device') || '—'],
+      ['Sample rate', `${(Number(response.headers.get('X-Sample-Rate')) / 1000).toFixed(1)} kHz`],
+      ['Length', formatTime(buffer.duration)],
+      ['Inference', inference === null ? '—' : milliseconds(inference)],
+      ['Backend', total === null ? '—' : milliseconds(total)],
+    ],
+  };
+}
+
+/* ---------- status ---------- */
+
+function showError(message) {
+  el.errorPanel.textContent = message;
+  el.errorPanel.hidden = false;
+}
+
+function hideError() {
+  el.errorPanel.hidden = true;
+  el.errorPanel.textContent = '';
+}
+
+function formatBytes(value) {
+  if (!Number.isFinite(value)) return '—';
+  if (value < 1024 * 1024) return `${Math.round(value / 1024).toLocaleString()} KiB`;
+  return `${(value / 1024 ** 3).toFixed(2)} GiB`;
+}
+
+async function refreshDiagnostics() {
+  const [devices, resources] = await Promise.all([
+    fetch('/v1/devices').then(readJson),
+    fetch('/v1/resources').then(readJson),
+  ]);
+  el.diagnosticDevices.textContent = (devices.devices || [])
+    .map((device) => `${device.id}${device.enabled ? '' : ' (disabled)'}`).join(', ') || 'None detected';
+  const loaded = resources.models || [];
+  el.diagnosticModels.textContent = loaded.length
+    ? loaded.map((item) => `${item.engine}/${item.model} · ${item.device}`).join('; ')
+    : 'None loaded';
+  const vram = Object.entries(resources.vram_used_bytes || {});
+  el.diagnosticVram.textContent = vram.length
+    ? vram.map(([device, bytes]) => `${device}: ${formatBytes(bytes)}`).join(' · ')
+    : 'No VRAM usage reported';
+  const queue = resources.gpu_queue;
+  el.diagnosticRequests.textContent = queue
+    ? `GPU ${queue.running ?? 0} running · ${queue.waiting ?? 0} waiting${queue.capacity == null ? '' : ` / ${queue.capacity}`}`
+    : loaded.map((item) => `${item.engine}/${item.model}: ${item.active_requests ?? 0}`).join(' · ') || 'No active requests';
 }
 
 async function checkHealth() {
   try {
-    const response = await fetch('/health');
-    if (!response.ok) throw new Error();
-    const health = await response.json();
-    elements.healthDot.className = 'size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129_/_0.12)]';
+    const health = await fetch('/health').then(readJson);
+    el.healthDot.className = 'dot is-up';
     const channels = Array.isArray(health.channels) ? health.channels : [];
-    elements.healthLabel.textContent = channels.length
-      ? channels.map((channel) => `${channel.id.toUpperCase()} ${channel.available ? 'ready' : channel.supported ? 'unavailable' : 'unsupported'}`).join(' · ')
+    el.healthLabel.textContent = channels.length
+      ? channels.map((item) => `${item.id.toUpperCase()} ${item.available ? 'ready' : item.supported ? 'unavailable' : 'unsupported'}`).join(' · ')
       : 'API online';
   } catch {
-    elements.healthDot.className = 'size-2 rounded-full bg-red-500';
-    elements.healthLabel.textContent = 'API offline';
+    el.healthDot.className = 'dot is-down';
+    el.healthLabel.textContent = 'API offline';
   }
 }
 
-function seekFromEvent(event) {
-  if (!elements.audio.duration) return;
-  const bounds = elements.waveform.getBoundingClientRect();
-  const ratio = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
-  elements.audio.currentTime = ratio * elements.audio.duration;
-  drawWaveform();
+/* ---------- theme ---------- */
+
+function setTheme(mode) {
+  localStorage.setItem('chorus-theme', mode);
+  document.documentElement.dataset.theme = mode;
+  document.documentElement.classList.toggle('dark',
+    mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches));
+  el.themeSwitch.querySelectorAll('button').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.themeChoice === mode));
+  });
+  slots.forEach((slot) => slot.draw());
 }
 
-document.querySelectorAll('.theme-button').forEach((button) => button.addEventListener('click', () => setTheme(button.dataset.themeChoice)));
+function setTarget(target) {
+  state.target = target;
+  el.targetSwitch.querySelectorAll('button').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.target === String(target)));
+  });
+}
+
+/* ---------- wiring ---------- */
+
+el.composer.addEventListener('submit', generate);
+el.speechText.addEventListener('input', () => {
+  el.charCount.textContent = `${el.speechText.value.length.toLocaleString()} / 10,000`;
+});
+el.speedInput.addEventListener('input', () => {
+  el.speedValue.textContent = `${Number(el.speedInput.value).toFixed(2)}×`;
+});
+el.voiceSelect.addEventListener('change', () => {
+  const language = state.engine?.id === 'kokoro'
+    ? el.voiceSelect.value.charAt(0)
+    : state.engine?.id === 'pocket' ? VOICE_LANGUAGE_HINTS[el.voiceSelect.value] || 'english' : null;
+  if (language && [...el.languageSelect.options].some((option) => option.value === language)) {
+    el.languageSelect.value = language;
+  }
+  refreshAlignmentAvailability();
+});
+el.languageSelect.addEventListener('change', refreshAlignmentAvailability);
+el.modelSelect.addEventListener('change', () => {
+  state.model = state.models.find((model) => model.engine === state.engine.id && model.model === el.modelSelect.value) || state.model;
+  state.channel = state.model?.default_channel || 'cpu';
+  refreshChannel();
+});
+el.channelSelect.addEventListener('change', () => {
+  state.channel = el.channelSelect.value;
+  refreshChannel();
+});
+
+el.auditionSwitch.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-audition]');
+  if (button) audition(Number(button.dataset.audition));
+});
+el.stopButton.addEventListener('click', () => slots.forEach((slot) => slot.pause()));
+el.swapButton.addEventListener('click', swapSlots);
+el.targetSwitch.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-target]');
+  if (button) setTarget(button.dataset.target === 'auto' ? 'auto' : Number(button.dataset.target));
+});
+el.themeSwitch.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-theme-choice]');
+  if (button) setTheme(button.dataset.themeChoice);
+});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if ((document.documentElement.dataset.theme || 'system') === 'system') setTheme('system');
 });
 
-elements.text.addEventListener('input', () => { elements.charCount.textContent = `${elements.text.value.length.toLocaleString()} / 10,000`; });
-elements.speed.addEventListener('input', () => { elements.speedValue.textContent = `${Number(elements.speed.value).toFixed(2)}×`; });
-elements.voice.addEventListener('change', () => {
-  const language = inferLanguage(state.engine, elements.voice.value);
-  if (language && [...elements.language.options].some((option) => option.value === language)) elements.language.value = language;
-  updateNarrationBadge();
-  updateAlignmentAvailability();
-});
-elements.model.addEventListener('change', () => {
-  state.model = state.models.find((model) => model.engine === state.engine.id && model.model === elements.model.value) || state.model;
-  state.channel = state.model?.default_channel || 'cpu';
-  updateChannelAvailability();
-});
-elements.channel.addEventListener('change', () => {
-  state.channel = elements.channel.value;
-  updateChannelAvailability();
-});
-elements.language.addEventListener('change', updateAlignmentAvailability);
-elements.form.addEventListener('submit', generateSpeech);
-elements.playButton.addEventListener('click', () => elements.audio.paused ? elements.audio.play() : elements.audio.pause());
-elements.waveform.addEventListener('click', seekFromEvent);
-elements.waveform.addEventListener('keydown', (event) => {
-  if (event.key === ' ' || event.key === 'Enter') {
+document.addEventListener('keydown', (event) => {
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.target.closest('input, textarea, select, button, a, [contenteditable]')) return;
+  const key = event.key.toLowerCase();
+  if (key === 'a' || key === 'b') {
     event.preventDefault();
-    elements.audio.paused ? elements.audio.play() : elements.audio.pause();
-  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    audition(key === 'a' ? 0 : 1);
+  } else if (event.key === ' ' && state.focus) {
     event.preventDefault();
-    elements.audio.currentTime = Math.min(elements.audio.duration || 0, Math.max(0, elements.audio.currentTime + (event.key === 'ArrowRight' ? 5 : -5)));
+    state.focus.toggle();
   }
 });
-elements.audio.addEventListener('play', () => setPlaying(true));
-elements.audio.addEventListener('pause', () => setPlaying(false));
-elements.audio.addEventListener('ended', () => setPlaying(false));
-elements.audio.addEventListener('timeupdate', () => {
-  elements.currentTime.textContent = formatTime(elements.audio.currentTime);
-  elements.waveform.setAttribute('aria-valuenow', String(Math.round(elements.audio.currentTime)));
-  drawWaveform();
-});
-window.addEventListener('resize', drawWaveform);
+window.addEventListener('resize', () => slots.forEach((slot) => slot.draw()));
 
-updateThemeButtons();
-document.querySelector('#server-address').textContent = location.host;
-elements.text.dispatchEvent(new Event('input'));
+setTheme(document.documentElement.dataset.theme || 'system');
+setTarget('auto');
+refreshCompare();
+el.speechText.dispatchEvent(new Event('input'));
+el.serverAddress.textContent = location.host;
 checkHealth();
-refreshEngines(false).catch((error) => showError(error.message));
+refreshCatalog(false).catch((error) => showError(error.message));

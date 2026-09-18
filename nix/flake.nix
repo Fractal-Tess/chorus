@@ -16,7 +16,6 @@
           sox
           libsndfile
           python312
-          tailwindcss
           uv
           zlib
         ];

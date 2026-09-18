@@ -15,17 +15,9 @@ Run the startup, encoding, FFT, and GPU queue regressions without model download
 python -m unittest discover -s tests -v
 ```
 
-Rebuild the local Tailwind stylesheet after changing classes:
+The browser console in `static/` is plain HTML, CSS, and ES modules with no build step: edit `index.html`, `app.css`, `app.js`, or `player.js` and reload. It renders into two comparison slots so two takes can be auditioned against each other.
 
-```bash
-tailwindcss \
-  -c static/tailwind.config.js \
-  -i static/tailwind.input.css \
-  -o static/tailwind.css \
-  --minify
-```
-
-`chorus-tts` (`src/chorus/speak.py`) synthesizes a single WAV from the shell for any engine, through the same registry the API uses, so it honours channel policy, device selection, and lazy loading. Browser assets and Tailwind configuration live in `static/`. Fetch an engine's manifest files before calling it. Generated audio and smoke reports belong in the ignored `outputs/` directory.
+`chorus-tts` (`src/chorus/speak.py`) synthesizes a single WAV from the shell for any engine, through the same registry the API uses, so it honours channel policy, device selection, and lazy loading. Fetch an engine's manifest files before calling it. Generated audio and smoke reports belong in the ignored `outputs/` directory.
 
 ```bash
 chorus-tts --engine kokoro --voice af_heart "A quiet test." -o outputs/kokoro.wav
