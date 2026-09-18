@@ -86,23 +86,16 @@ export LD_LIBRARY_PATH="/run/opengl-driver/lib:@libraryPath@${LD_LIBRARY_PATH:+:
 
 # Keep source updates clean while retaining mutable environments and the large
 # downloaded upstream checkouts.  The source closure contains manifests only,
-# never model weights; the model tree is synced independently below.
-# Nix normalizes timestamps, so equal-sized revisions need a content comparison.
+# never model weights.  Nix normalizes timestamps, so equal-sized revisions
+# need a content comparison.
 "@rsync@/bin/rsync" -a --checksum --delete --chmod=u+w --no-owner --no-group \
-    --exclude='.venv/***' --exclude='upstream/***' --exclude='models/***' \
+    --exclude='.venv/***' --exclude='upstream/***' \
+    --include='*/' --include='models/*/*/manifest.json' --exclude='models/***' \
     "$STORE_SOURCE/" "$application/"
 
-# The catalog belongs in state, not the read-only Nix store.  Copy only shipped
-# manifests so a package upgrade cannot overwrite or remove user-downloaded
-# weights (which may have extensions not known to this launcher).
-if [[ -d "$STORE_SOURCE/models" ]]; then
-    while IFS= read -r -d '' manifest; do
-        relative=${manifest#"$STORE_SOURCE/models/"}
-        target="$primary_models_dir/$relative"
-        mkdir -p "${target%/*}"
-        install -m 0644 "$manifest" "$target"
-    done < <("@find@/bin/find" "$STORE_SOURCE/models" -type f -name manifest.json -print0)
-fi
+# The catalog belongs in state, not the read-only Nix store, so the CLI copies
+# these manifests into the primary model root at startup without touching
+# user-downloaded weights.
 
 runtime_metadata() {
     local runtime=$1

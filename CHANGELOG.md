@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 - 2026-09-18
+
+- Install shipped model manifests from the CLI instead of a Docker entrypoint or Nix launcher: any writable primary root resolves and downloads the shipped models, including a fresh `--models-dir`.
+
 ## 0.1.2 - 2026-09-17
 
 - Compare source contents during NixOS upgrades so equal-sized files with normalized Nix timestamps are refreshed, including package version metadata.

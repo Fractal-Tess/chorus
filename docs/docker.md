@@ -23,10 +23,10 @@ model and cache directories outside the container so later runs reuse them.
 ## Storage
 
 With no model-root override, the container uses `/models` as its primary
-writable model root and `/cache` for download and processor caches. The
-entrypoint copies shipped manifests into the first configured root without
-deleting existing weights. Model roots are ordered: for each engine and model,
-Chorus selects the first root containing a complete, usable
+writable model root and `/cache` for download and processor caches. Chorus
+installs its shipped manifests into the first configured root on startup
+without deleting existing weights. Model roots are ordered: for each engine
+and model, Chorus selects the first root containing a complete, usable
 `<engine>/<model>/` directory. It never merges artifacts across roots. If no
 root has a complete model, downloads go only to the primary root, reusing
 partial files there. Secondary roots need read and traverse access only and
@@ -56,8 +56,8 @@ docker run --rm --name chorus-multi-root \
   --engines kokoro --devices cpu --download-missing
 ```
 
-The entrypoint seeds manifests into `/models-fast`, never into the secondary
-mount. The equivalent environment configuration is:
+The primary root receives the shipped manifests, never the secondary mount.
+The equivalent environment configuration is:
 
 ```sh
 docker run --rm --name chorus-multi-root \
@@ -149,11 +149,12 @@ publish it only on localhost, and the API has no authentication. Keep it on
 loopback or put it behind a trusted private network before publishing it to
 other machines.
 
-## Entrypoint and scope
+## Startup and scope
 
-The image provides writable `/models` and `/cache` directories by default. Its
-entrypoint installs shipped manifests into the first configured model root,
-then executes Chorus with the supplied arguments. Image defaults are
+The image provides writable `/models` and `/cache` directories by default and
+starts Chorus directly. The CLI installs the shipped manifests into the first
+configured model root before reading the catalog, so a cold volume is populated
+before `--download-missing` runs. Image defaults are
 `--engines kokoro --devices cpu --download-missing`; pass explicit arguments
 when changing engines, device pools, or model roots. CPU and GPU are logical
 request channels: `--devices` declares the available pool, while speech

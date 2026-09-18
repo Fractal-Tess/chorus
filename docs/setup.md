@@ -100,7 +100,7 @@ first root containing a complete, usable model directory. Manifests use the
 first occurrence of each model, and Chorus never merges artifacts from
 different roots. If no root contains a complete copy, `downloadMissing` writes
 only to the first root and reuses partial artifacts already there. Downloads
-never mutate secondary roots. The module seeds the shipped manifests into the
+never mutate secondary roots. Chorus seeds the shipped manifests into the
 primary root only; it does not write manifests or weights to secondary roots.
 
 Configure both drives in NixOS `fileSystems` first. The module includes every

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.2-d97706" alt="Version 0.1.2" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.3-d97706" alt="Version 0.1.3" /></a>
   <a href="docs/docker.md"><img src="https://img.shields.io/badge/Docker-guide-2496ED?logo=docker&logoColor=white" alt="Docker guide" /></a>
   <a href="docs/api.md"><img src="https://img.shields.io/badge/API-reference-334155" alt="API reference" /></a>
 </p>
@@ -96,7 +96,7 @@ See the [NixOS setup](docs/setup.md#nixos-service) for service options and the [
 
 ## Documentation
 
-- [Docker](docs/docker.md): image build, CPU/CUDA and CDI runs, persistent storage, and entrypoint behavior.
+- [Docker](docs/docker.md): image build, CPU/CUDA and CDI runs, persistent storage, and startup behavior.
 - [Tutorials](docs/tutorials.md): source-only cloning, the Nix shell, selective model downloads, CPU/GPU requests, and model storage.
 - [Setup](docs/setup.md): model downloads, NVIDIA support, NixOS service, Breeze, and Fish.
 - [API and runtime](docs/api.md): engines, voices, channels, GPU queue, memory budgets, and endpoints.

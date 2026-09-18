@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from chorus.models import ModelCatalog
+from chorus.models import ModelCatalog, install_shipped_manifests
 
 LFS_POINTER = b"version https://git-lfs.github.com/spec/v1\noid sha256:placeholder\n"
 
@@ -32,6 +32,43 @@ def model(root, engine, artifacts):
 
 
 class ModelStartupTests(unittest.TestCase):
+    def test_fresh_root_is_seeded_from_shipped_manifests(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            store = base / "image"
+            payload = b"downloaded model"
+            shipped = model(store / "models", "kokoro", {"weights": payload})
+            root = base / "state/models"
+            with patch("chorus.models.ROOT", store):
+                install_shipped_manifests(root)
+            self.assertEqual(
+                (root / "kokoro/default/manifest.json").read_text(),
+                (shipped / "manifest.json").read_text(),
+            )
+            catalog = ModelCatalog([root])
+            self.assertEqual(
+                catalog.resolve("kokoro").directory, root / "kokoro/default"
+            )
+            cached = base / "cached"
+            cached.write_bytes(payload)
+            with patch("huggingface_hub.hf_hub_download", return_value=str(cached)):
+                catalog.prepare(["kokoro"], download_missing=True)
+            self.assertEqual((root / "kokoro/default/weights").read_bytes(), payload)
+
+            # A package upgrade refreshes manifests and leaves weights alone.
+            refreshed = json.loads((shipped / "manifest.json").read_text())
+            refreshed["artifacts"]["weights"]["revision"] = "b" * 40
+            (shipped / "manifest.json").write_text(json.dumps(refreshed))
+            with patch("chorus.models.ROOT", store):
+                install_shipped_manifests(root)
+                # A root that is already the shipped directory is left alone.
+                install_shipped_manifests(store / "models")
+            self.assertEqual(
+                json.loads((root / "kokoro/default/manifest.json").read_text()),
+                refreshed,
+            )
+            self.assertEqual((root / "kokoro/default/weights").read_bytes(), payload)
+
     def test_reports_missing_empty_and_lfs_files_without_downloading(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

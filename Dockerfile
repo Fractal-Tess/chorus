@@ -54,7 +54,6 @@ COPY --from=builder --chown=10001:10001 /app/static /app/static
 COPY --from=builder --chown=10001:10001 /app/channels.toml /app/channels.toml
 COPY --from=builder --chown=10001:10001 /app/models /app/models
 # Isolated Breeze/Fish runtimes are intentionally not included in this image.
-COPY --chown=10001:10001 docker/entrypoint.py /app/docker/entrypoint.py
 
 VOLUME ["/models", "/cache"]
 EXPOSE 8000
@@ -64,5 +63,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
 
 USER 10001:10001
-ENTRYPOINT ["python", "/app/docker/entrypoint.py"]
+# The CLI installs the shipped manifests into the primary model root on start.
+ENTRYPOINT ["python", "-m", "chorus.cli"]
 CMD ["--engines", "kokoro", "--devices", "cpu", "--download-missing"]

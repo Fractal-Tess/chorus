@@ -62,12 +62,11 @@ An explicit GPU request does not fall back to CPU. If no enabled CUDA device is 
 ## Use ordered model roots
 
 Keep a fast SSD first for downloads and a larger, slower disk second for
-models that do not fit on the SSD. Copy the shipped manifests to the primary
-root, then pass both roots with repeatable flags:
+models that do not fit on the SSD. Pass both roots with repeatable flags;
+Chorus installs the shipped manifests into the first one:
 
 ```sh
 mkdir -p /mnt/fast/chorus/models /mnt/archive/chorus/models
-cp -a models/. /mnt/fast/chorus/models/
 serve-api \
   --models-dir /mnt/fast/chorus/models \
   --models-dir /mnt/archive/chorus/models \
@@ -90,12 +89,12 @@ first root, reusing partial artifacts there. Secondary roots need read and
 traverse access only.
 
 For NixOS, use the same ordered roots with
-`services.chorus.modelsDirectories`; the module seeds manifests and permits
-writes only in the primary root. See [storing models on another drive](setup.md#store-models-on-another-drive).
+`services.chorus.modelsDirectories`; the module permits writes only in the
+primary root. See [storing models on another drive](setup.md#store-models-on-another-drive).
 
-If your checkout already contains downloaded weights, copying the manifests
-and model directories includes them. To relocate a model later, stop Chorus,
-move the complete `<engine>/<model>/` directory to another configured root,
+To reuse weights a checkout already downloaded, copy those complete
+`<engine>/<model>/` directories into the primary root. To relocate a model
+later, stop Chorus, move the complete directory to another configured root,
 then restart. The complete model is discovered there without a redownload.
 
 ## Model files and usage rights

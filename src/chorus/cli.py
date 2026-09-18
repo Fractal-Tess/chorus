@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from chorus.engines import ENGINE_INFO
-from chorus.models import ModelCatalog
+from chorus.models import ModelCatalog, install_shipped_manifests, model_roots
 
 MIB = 1024**2
 
@@ -180,7 +180,12 @@ def main() -> None:
         _mib_to_bytes(args.ram_budget_mib) if args.ram_budget_mib is not None else None
     )
     try:
-        catalog = ModelCatalog(args.models_dir)
+        roots = model_roots(args.models_dir)
+        install_shipped_manifests(roots[0])
+    except (ValueError, OSError) as error:
+        parser.error(f"Cannot prepare model roots: {error}")
+    try:
+        catalog = ModelCatalog(list(roots))
     except (ValueError, OSError) as error:
         parser.error(f"Cannot read model catalog: {error}")
     if args.channel_config is not None and not args.channel_config.is_file():

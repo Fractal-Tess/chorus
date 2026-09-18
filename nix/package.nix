@@ -5,7 +5,6 @@
   cacert,
   coreutils,
   gnused,
-  findutils,
   git,
   libsndfile,
   python312,
@@ -142,7 +141,6 @@ stdenv.mkDerivation {
       --subst-var-by uv "${uv}" \
       --subst-var-by toolPath "${toolPath}" \
       --subst-var-by rsync "${rsync}" \
-      --subst-var-by find "${findutils}" \
       --subst-var-by git "${git}" \
       --subst-var-by libraryPath "${libraryPath}" \
       --subst-var-by caBundle "${caBundle}"

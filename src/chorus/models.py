@@ -29,6 +29,25 @@ def model_roots(roots: list[Path] | None = None) -> tuple[Path, ...]:
     return tuple(dict.fromkeys(path.resolve() for path in roots))
 
 
+def install_shipped_manifests(root: Path) -> None:
+    """Copy this installation's manifests into a writable model root.
+
+    A root is the catalog's inventory, so a fresh root resolves and downloads
+    nothing until its manifests are in place. Manifests are refreshed on every
+    start; no downloaded artifact is touched.
+    """
+    shipped = ROOT / "models"
+    root.mkdir(parents=True, exist_ok=True)
+    if not shipped.is_dir():
+        return
+    for manifest in sorted(shipped.glob("*/*/manifest.json")):
+        destination = root / manifest.relative_to(shipped)
+        if destination.resolve() == manifest.resolve():
+            continue
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(manifest, destination)
+
+
 def _file_problem(path: Path) -> str | None:
     if not path.is_file():
         return "missing or not a regular file"
