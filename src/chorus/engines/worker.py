@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-import binascii
+import contextlib
 import io
 import json
 import logging
@@ -69,7 +69,7 @@ class WorkerEngine(Engine):
         if process is not None and process.poll() is None:
             return process
         if process is not None:
-            self._discard_process_locked(process)
+            self._stop_process(process, 0.2)
 
         process = subprocess.Popen(
             [
@@ -106,9 +106,13 @@ class WorkerEngine(Engine):
         return process
 
     @staticmethod
-    def _discard_process_locked(process: subprocess.Popen[str]) -> None:
+    def _stop_process(process: subprocess.Popen[str], grace: float) -> None:
+        """Close stdin so the worker sees EOF, then escalate until it exits."""
+        if process.stdin is not None:
+            with contextlib.suppress(OSError):
+                process.stdin.close()
         try:
-            process.wait(timeout=0.2)
+            process.wait(timeout=grace)
         except subprocess.TimeoutExpired:
             process.terminate()
             try:
@@ -117,12 +121,10 @@ class WorkerEngine(Engine):
                 process.kill()
                 process.wait()
         finally:
-            for stream in (process.stdin, process.stdout, process.stderr):
+            for stream in (process.stdout, process.stderr):
                 if stream is not None:
-                    try:
+                    with contextlib.suppress(OSError):
                         stream.close()
-                    except OSError:
-                        pass
 
     @staticmethod
     def _read_line(
@@ -163,7 +165,7 @@ class WorkerEngine(Engine):
         process = self._process
         self._process = None
         if process is not None:
-            self._discard_process_locked(process)
+            self._stop_process(process, 0.2)
 
     def _request_locked(self, payload: dict[str, Any]) -> dict[str, Any]:
         process = self._start_locked()
@@ -199,10 +201,9 @@ class WorkerEngine(Engine):
         self, text: str, voice: str | None, language: str | None, speed: float
     ) -> AudioResult:
         self.validate_request(text, voice, language, speed)
-        request_id = uuid.uuid4().hex
         payload = {
             "op": "synthesize",
-            "id": request_id,
+            "id": uuid.uuid4().hex,
             "text": text,
             "voice": voice,
             "language": language,
@@ -211,34 +212,11 @@ class WorkerEngine(Engine):
         with self._request_lock:
             response = self._request_locked(payload)
 
-        if response.get("id") != request_id:
-            raise RuntimeError("TTS worker response id does not match request")
-        encoded = response.get("audio_b64")
-        if not isinstance(encoded, str):
-            raise RuntimeError("TTS worker returned no audio")
-        try:
-            wav = base64.b64decode(encoded, validate=True)
-        except (ValueError, binascii.Error) as exc:
-            raise RuntimeError("TTS worker returned invalid base64 audio") from exc
-        if not wav:
-            raise RuntimeError("TTS worker returned empty audio")
-        try:
-            with sf.SoundFile(io.BytesIO(wav), mode="r") as audio_file:
-                sample_rate = int(audio_file.samplerate)
-                frames = int(audio_file.frames)
-                channels = int(audio_file.channels)
-        except Exception as exc:
-            raise RuntimeError("TTS worker returned invalid WAV audio") from exc
-        if channels != 1 or frames <= 0:
-            raise RuntimeError("TTS worker returned empty or non-mono WAV audio")
-        declared_rate = response.get("sample_rate")
-        try:
-            if declared_rate is not None and int(declared_rate) != sample_rate:
-                raise RuntimeError("TTS worker sample-rate metadata does not match WAV")
-        except (TypeError, ValueError) as exc:
-            raise RuntimeError(
-                "TTS worker returned invalid sample-rate metadata"
-            ) from exc
+        wav = base64.b64decode(response["audio_b64"])
+        # The WAV header is the single source of truth for rate and length.
+        with sf.SoundFile(io.BytesIO(wav), mode="r") as audio_file:
+            sample_rate = int(audio_file.samplerate)
+            frames = int(audio_file.frames)
         return AudioResult(
             wav=wav, sample_rate=sample_rate, duration=frames / sample_rate
         )
@@ -261,23 +239,4 @@ class WorkerEngine(Engine):
                     exc_info=True,
                 )
             finally:
-                for stream in (process.stdin, process.stdout):
-                    if stream is not None:
-                        try:
-                            stream.close()
-                        except OSError:
-                            pass
-                try:
-                    process.wait(timeout=_CLOSE_TIMEOUT_SECONDS)
-                except subprocess.TimeoutExpired:
-                    process.terminate()
-                    try:
-                        process.wait(timeout=1.0)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait()
-                if process.stderr is not None:
-                    try:
-                        process.stderr.close()
-                    except OSError:
-                        pass
+                self._stop_process(process, _CLOSE_TIMEOUT_SECONDS)

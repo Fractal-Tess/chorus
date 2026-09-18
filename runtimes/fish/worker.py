@@ -11,7 +11,6 @@ import base64
 import io
 import json
 import logging
-import math
 import os
 import queue
 import sys
@@ -157,34 +156,9 @@ def _error(request_id: Any, message: str) -> None:
     _response({"ok": False, "id": request_id, "error": message})
 
 
-def _validate_request(message: dict[str, Any]) -> tuple[Any, str, str | None]:
-    request_id = message.get("id")
-    if request_id is None:
-        raise ValueError("request id is required")
-    if message.get("op", "synthesize") != "synthesize":
-        raise ValueError(f"unsupported operation: {message.get('op')!r}")
-
-    text = message.get("text")
-    if not isinstance(text, str) or not text.strip():
-        raise ValueError("text must be a non-empty string")
-
-    speed = message.get("speed", 1.0)
-    if (
-        isinstance(speed, bool)
-        or not isinstance(speed, (int, float))
-        or not math.isfinite(speed)
-    ):
-        raise ValueError("speed must be exactly 1.0")
-    if float(speed) != 1.0:
-        raise ValueError("Fish S2-Pro does not support speed other than 1.0")
-
-    voice = message.get("voice")
-    if voice is not None and (not isinstance(voice, str) or not voice.strip()):
-        raise ValueError("voice must be a non-empty string when provided")
-    language = message.get("language")
-    if language is not None and not isinstance(language, str):
-        raise ValueError("language must be a string when provided")
-    return request_id, text, voice
+def _read_request(message: dict[str, Any]) -> tuple[Any, str, str | None]:
+    """Text, speed, and language are validated by the adapter that spawns us."""
+    return message["id"], message["text"], message.get("voice")
 
 
 def _wav_pcm16(audio: Any, sample_rate: int) -> bytes:
@@ -321,7 +295,7 @@ def _serve(checkpoint_arg: Path, device: str) -> None:
                         raise ValueError("close request id is required")
                     _response({"ok": True, "id": request_id, "closed": True})
                     break
-                request_id, text, voice = _validate_request(message)
+                request_id, text, voice = _read_request(message)
                 audio, generated_rate = _synthesize(engine, text, voice)
                 _response(
                     {

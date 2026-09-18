@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4 - 2026-09-19
+
+- Replace the `bin/` shell launchers with `[project.scripts]` console scripts; the Nix dev shell now exposes them from the project virtualenv.
+- Replace the per-engine `kokoro-tts`, `kitten-tts`, and `piper-tts` commands with a single `chorus-tts` covering every engine through the registry, so shell synthesis honours channel policy, device selection, and lazy loading. The Kitten and Piper commands previously bypassed the registry and reimplemented model loading.
+- Stop re-validating requests inside the Breeze and Fish runtime workers: both checked a language they then discarded, and Breeze kept a second copy of the adapter's language allowlist. Invalid input now fails in the adapter as a clean rejection instead of surfacing as a worker failure.
+- Drop the isolated worker's validation of its own responses and collapse two copies of the process shutdown escalation; the WAV header is the single source of truth for sample rate and duration, and shutdown now closes stdin first so workers exit on EOF.
+- Cover the isolated worker transport with tests that exercise the real JSONL protocol against a stub worker, with no GPU or runtime virtualenv required.
+
 ## 0.1.3 - 2026-09-18
 
 - Install shipped model manifests from the CLI instead of a Docker entrypoint or Nix launcher: any writable primary root resolves and downloads the shipped models, including a fresh `--models-dir`.

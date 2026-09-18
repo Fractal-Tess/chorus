@@ -13,7 +13,6 @@ import base64
 import io
 import json
 import logging
-import math
 import os
 import sys
 from pathlib import Path
@@ -61,16 +60,6 @@ from models.fast_streaming import (  # noqa: E402
 )
 
 LOGGER = logging.getLogger("chorus.breeze-worker")
-_ALLOWED_LANGUAGES = {
-    "en",
-    "en-us",
-    "en-gb",
-    "english",
-    "zh",
-    "zh-cn",
-    "zh-hans",
-    "chinese",
-}
 _MAX_NEW_TOKENS = 1500
 _MAX_SEQ_LEN = 2048
 
@@ -84,43 +73,10 @@ def _error(request_id: Any, message: str) -> None:
     _response({"ok": False, "id": request_id, "error": message})
 
 
-def _validate_request(
-    message: dict[str, Any],
-) -> tuple[str, str, str | None, str | None]:
-    request_id = message.get("id")
-    if not isinstance(request_id, str) or not request_id:
-        raise ValueError("Request id must be a non-empty string")
-
-    text = message.get("text")
-    if not isinstance(text, str) or not text.strip():
-        raise ValueError("Text must contain speech")
-
+def _read_request(message: dict[str, Any]) -> tuple[str, str, str | None]:
+    """Text, speed, and language are validated by the adapter that spawns us."""
     voice = message.get("voice")
-    if voice is not None and not isinstance(voice, str):
-        raise ValueError("Voice must be a text description or null")
-    voice = voice.strip() if voice else None
-
-    language = message.get("language")
-    if language is not None and not isinstance(language, str):
-        raise ValueError("Language must be a string or null")
-    language = language.strip().lower() if language else None
-    if language is not None and language not in _ALLOWED_LANGUAGES:
-        raise ValueError(
-            "Breeze TTS supports English and Chinese only; "
-            f"unsupported language: {language}"
-        )
-
-    speed = message.get("speed", 1.0)
-    if isinstance(speed, bool) or not isinstance(speed, (int, float)):
-        raise ValueError(
-            "Speed must be exactly 1.0; Breeze TTS does not support speed adjustment"
-        )
-    if not math.isfinite(float(speed)) or float(speed) != 1.0:
-        raise ValueError(
-            "Speed must be exactly 1.0; Breeze TTS does not support speed adjustment"
-        )
-
-    return request_id, text, voice, language
+    return message["id"], message["text"], voice.strip() if voice else None
 
 
 def _synthesize(
@@ -228,7 +184,7 @@ def _serve(checkpoint: Path, device: str) -> None:
                 return
             if operation != "synthesize":
                 raise ValueError(f"Unknown worker operation: {operation!r}")
-            request_id, text, voice, _language = _validate_request(message)
+            request_id, text, voice = _read_request(message)
             set_all_seeds(42)
             wav, sample_rate = _synthesize(
                 runtime,
