@@ -49,6 +49,19 @@ licenses.
 
 ## Kokoro GPU measurement
 
+Use the canonical benchmark script for comparable warm, saturated results. Its
+fixed workload is Kokoro `82m-v1.0`, `af_bella`, MP3, and “The quick brown fox
+jumps over the lazy dog.” The default run warms all workers with eight
+concurrent requests, then measures eight clients for 30 seconds:
+
+```bash
+python scripts/benchmark_speech.py
+```
+
+Use `--clients`, `--seconds`, or `--url` only when deliberately testing a
+different concurrency level, duration, or Chorus host. Results include HTTP and
+backend latency distributions, errors, and request counts per physical device.
+
 Kokoro produces about **23 MP3 requests/s** on two RTX 3090s. Moving its short STFT from CPU to CUDA raised an earlier matched result from 10.36 to 23.52 requests/s, without extra model replicas or reduced precision. The adapter preserves ONNX Runtime 1.26's float32 Bluestein FFT operation order; an approximate DFT changed near-zero signs and caused downstream phase errors.
 
 The original `model.onnx` and learned weights remain unchanged. Each CUDA worker loads a temporary derived graph, then deletes it after session initialization. This avoids retaining a second serialized copy of the weights in RAM. CPU execution keeps the original graph.
