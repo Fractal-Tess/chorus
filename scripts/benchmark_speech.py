@@ -19,6 +19,8 @@ DEFAULT_URL = "http://127.0.0.1:8749/v1/audio/speech"
 TIMING_HEADERS = {
     "queue_ms": "X-Queue-Time-Ms",
     "inference_ms": "X-Inference-Time-Ms",
+    "lava_sr_ms": "X-LavaSR-Time-Ms",
+    "alignment_ms": "X-Alignment-Time-Ms",
     "encoding_ms": "X-Encoding-Time-Ms",
     "backend_ms": "X-Backend-Time-Ms",
 }
@@ -29,6 +31,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--clients", type=int, default=8)
     parser.add_argument("--seconds", type=float, default=30.0)
+    parser.add_argument("--lava-sr", action="store_true")
+    parser.add_argument("--force-align", action="store_true")
     parser.add_argument(
         "--warmup-requests",
         type=int,
@@ -43,7 +47,7 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def request_body() -> bytes:
+def request_body(*, lava_sr: bool, force_align: bool) -> bytes:
     return json.dumps(
         {
             "engine": "kokoro",
@@ -54,6 +58,8 @@ def request_body() -> bytes:
             "language": "a",
             "speed": 1.0,
             "response_format": "mp3",
+            "lava_sr": lava_sr,
+            "force_align": force_align,
         }
     ).encode()
 
@@ -104,7 +110,7 @@ def summarize(rows: list[dict[str, float | str]]) -> dict[str, dict[str, float]]
 
 def main() -> int:
     args = parse_args()
-    body = request_body()
+    body = request_body(lava_sr=args.lava_sr, force_align=args.force_align)
 
     print(
         f"Warming with {args.warmup_requests} concurrent requests...",
@@ -162,6 +168,8 @@ def main() -> int:
             "clients": args.clients,
             "target_seconds": args.seconds,
             "warmup_requests": args.warmup_requests,
+            "lava_sr": args.lava_sr,
+            "force_align": args.force_align,
         },
         "wall_seconds_including_drain": wall_seconds,
         "completed": len(rows),

@@ -56,7 +56,7 @@ Budgets are optional, soft cache targets, not hard allocation limits. Loading an
 | Breeze TTS 2 | No | Yes | Voice description | 24 kHz | English/Chinese; research/non-commercial license |
 | Fish Audio S2-Pro | No | Yes | Optional speaking style | 44.1 kHz | Multilingual; research/non-commercial license |
 
-Channel support reflects the adapters shipped with Chorus, not every capability of the upstream projects. Per-model policy can disable a supported channel; it cannot enable an unsupported one. GPU inference still uses CPU work, and optional LavaSR and alignment run on CPU.
+Channel support reflects the adapters shipped with Chorus, not every capability of the upstream projects. Per-model policy can disable a supported channel; it cannot enable an unsupported one. GPU inference still uses CPU work. Optional LavaSR and alignment follow the selected model device, so GPU requests accelerate all three stages while CPU requests remain CPU-only.
 
 For English narration, start with Kokoro `af_heart`. The console also marks expressive, audiobook, documentary, and British narration alternatives.
 

@@ -16,12 +16,13 @@ from .types import AudioResult, WordAlignment, encode_wav
 
 
 class Processor:
-    """Apply optional CPU audio enhancement and English forced alignment."""
+    """Apply optional audio enhancement and English forced alignment."""
 
-    def __init__(self) -> None:
+    def __init__(self, device: str = "cpu") -> None:
+        self.device = device if device.startswith("cuda:") else "cpu"
         self._models: dict[str, Any] = {}
         self._load_lock = threading.RLock()
-        self._cpu_lock = threading.Lock()
+        self._processing_lock = threading.Lock()
 
     def process(
         self,
@@ -41,7 +42,7 @@ class Processor:
                 },
             )
         total_started = time.perf_counter()
-        with self._cpu_lock:
+        with self._processing_lock:
             lava_sr_ms = 0.0
             if lava_sr:
                 lava_sr_started = time.perf_counter()
@@ -78,15 +79,17 @@ class Processor:
         from LavaSR.model import LavaEnhance2
 
         def load_model() -> LavaEnhance2:
-            model = LavaEnhance2("YatharthS/LavaSR", device="cpu")
+            model = LavaEnhance2("YatharthS/LavaSR", device=self.device)
             model.bwe_model.lr_refiner = FastLRMerge(
-                device="cpu", cutoff=8_000, transition_bins=1_024
+                device=self.device, cutoff=8_000, transition_bins=1_024
             )
             return model
 
         model = self._get_or_load("lavasr", load_model)
         samples, sample_rate = sf.read(io.BytesIO(audio.wav), dtype="float32")
-        input_audio = torch.from_numpy(np.asarray(samples)).reshape(1, -1)
+        input_audio = (
+            torch.from_numpy(np.asarray(samples)).reshape(1, -1).to(self.device)
+        )
         input_audio = torchaudio.functional.resample(input_audio, sample_rate, 16_000)
         enhanced = model.enhance(input_audio, denoise=False).detach().cpu().numpy()
         enhanced_audio = encode_wav(enhanced, 48_000)
@@ -106,7 +109,7 @@ class Processor:
         bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
 
         def load_model() -> Any:
-            return bundle.get_model().eval()
+            return bundle.get_model().eval().to(self.device)
 
         model = self._get_or_load("force-aligner:english", load_model)
         dictionary = {label: index for index, label in enumerate(bundle.get_labels())}
@@ -133,13 +136,15 @@ class Processor:
 
         transcript = "|".join(normalized for _, normalized in words)
         targets = torch.tensor(
-            [[dictionary[character] for character in transcript]], dtype=torch.int32
+            [[dictionary[character] for character in transcript]],
+            dtype=torch.int32,
+            device=self.device,
         )
         samples, sample_rate = sf.read(io.BytesIO(audio.wav), dtype="float32")
         samples = np.asarray(samples)
         if samples.ndim == 2:
             samples = samples.mean(axis=1)
-        waveform = torch.from_numpy(samples).reshape(1, -1)
+        waveform = torch.from_numpy(samples).reshape(1, -1).to(self.device)
         if sample_rate != bundle.sample_rate:
             waveform = torchaudio.functional.resample(
                 waveform, sample_rate, bundle.sample_rate

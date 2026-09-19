@@ -61,6 +61,8 @@ python scripts/benchmark_speech.py
 Use `--clients`, `--seconds`, or `--url` only when deliberately testing a
 different concurrency level, duration, or Chorus host. Results include HTTP and
 backend latency distributions, errors, and request counts per physical device.
+Add `--lava-sr --force-align` to reproduce Superlight's complete enhancement
+and word-timing workload.
 
 Kokoro produces about **23 MP3 requests/s** on two RTX 3090s. Moving its short STFT from CPU to CUDA raised an earlier matched result from 10.36 to 23.52 requests/s, without extra model replicas or reduced precision. The adapter preserves ONNX Runtime 1.26's float32 Bluestein FFT operation order; an approximate DFT changed near-zero signs and caused downstream phase errors.
 

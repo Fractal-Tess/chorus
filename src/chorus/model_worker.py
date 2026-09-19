@@ -58,7 +58,7 @@ def _serve(spec_payload: dict, device: str, socket_path: str) -> None:
             with initialization:
                 if adapter is None:
                     adapter = module.Adapter(spec, device)
-                    processor = Processor()
+                    processor = Processor(device)
             audio = adapter.synthesize(
                 request["text"],
                 request.get("voice"),

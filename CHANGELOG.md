@@ -2,6 +2,7 @@
 
 ## 0.1.7 - 2026-09-19
 
+- Run optional LavaSR enhancement and Wav2Vec2 force alignment on the selected CUDA device instead of holding a GPU synthesis slot while both stages run on CPU. CPU-channel requests keep CPU post-processing.
 - Add a canonical Kokoro HTTP benchmark with fixed text, voice, MP3 output, warm-up, and concurrency defaults. It reports throughput, latency phases, errors, and per-GPU request counts so measurements use the same workload across runs.
 - Stop pinning the Docker stages to `linux/amd64`. Every stage now takes the target platform, so the image matches the builder instead of forcing an emulated `amd64` build on other hosts. `amd64` remains the only target the dependencies can install, since `onnxruntime-gpu` and `torchaudio` ship no `aarch64` Linux wheels.
 
