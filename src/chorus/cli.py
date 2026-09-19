@@ -97,7 +97,7 @@ def main() -> None:
     )
     parser.add_argument("--host", default=os.environ.get("TTS_HOST", "127.0.0.1"))
     parser.add_argument(
-        "--port", type=int, default=int(os.environ.get("TTS_PORT", "8000"))
+        "--port", type=int, default=int(os.environ.get("TTS_PORT", "8749"))
     )
     parser.add_argument(
         "--models-dir",

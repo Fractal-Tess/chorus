@@ -32,7 +32,7 @@ ENV VIRTUAL_ENV=/app/.venv \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     TTS_HOST=0.0.0.0 \
-    TTS_PORT=8000 \
+    TTS_PORT=8749 \
     TTS_MODELS_DIRS=/models \
     HF_HOME=/cache/huggingface \
     HF_HUB_CACHE=/cache/huggingface/hub \
@@ -56,11 +56,11 @@ COPY --from=builder --chown=10001:10001 /app/models /app/models
 # Isolated Breeze/Fish runtimes are intentionally not included in this image.
 
 VOLUME ["/models", "/cache"]
-EXPOSE 8000
+EXPOSE 8749
 
 # Downloads happen before the API binds; allow a cold model volume to initialize.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8749/health', timeout=3)"
 
 USER 10001:10001
 # The CLI installs the shipped manifests into the primary model root on start.

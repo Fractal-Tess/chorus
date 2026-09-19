@@ -1,0 +1,24 @@
+name: chorus
+
+services:
+  chorus:
+    build: .
+    image: chorus:local
+    # Engine and device selection stay CLI arguments; Compose interpolates them
+    # so a .env file is enough to change them. Both take comma-separated lists.
+    command:
+      - --engines
+      - ${CHORUS_ENGINES:-kokoro}
+      - --devices
+      - ${CHORUS_DEVICES:-cpu}
+      - --download-missing
+    ports:
+      - "127.0.0.1:${CHORUS_PORT:-8749}:8749"
+    volumes:
+      - models:/models
+      - cache:/cache
+    restart: unless-stopped
+
+volumes:
+  models:
+  cache:

@@ -114,6 +114,10 @@ function targetSlot() {
 
 /* ---------- catalog and form ---------- */
 
+function pick(values, held, fallback) {
+  return values.includes(held) ? held : fallback;
+}
+
 function fillSelect(select, values, selected, label = (value) => value) {
   select.replaceChildren(...values.map((value) => new Option(label(value), value, false, value === selected)));
 }
@@ -143,6 +147,14 @@ function channelLabel(status) {
   if (!status.enabled) return `${status.id.toUpperCase()} — disabled by policy`;
   if (!status.available) return `${status.id.toUpperCase()} — unavailable`;
   return `${status.id.toUpperCase()} — ready`;
+}
+
+/* The configured default is a policy preference, not a guarantee: a CPU-only
+   host still reports a GPU default. Fall back so the form starts usable. */
+function usableChannel() {
+  const configured = state.model?.default_channel || 'cpu';
+  if (channelStatus(configured).available) return configured;
+  return state.model?.channels?.find((item) => item.available)?.id || configured;
 }
 
 function refreshChannel() {
@@ -178,13 +190,18 @@ function refreshAlignmentAvailability() {
 
 function selectEngine(id) {
   const previous = state.model;
+  /* Catalog refreshes re-enter here with the same engine, so keep whatever the
+     user picked instead of snapping every field back to the engine defaults. */
+  const held = state.engine?.id === id
+    ? { voice: el.voiceSelect.value, language: el.languageSelect.value }
+    : {};
   state.engine = state.engines.find((engine) => engine.id === id);
   if (!state.engine) return;
   const models = state.models.filter((model) => model.engine === id);
   state.model = models.find((model) => model.model === previous?.model)
     || models.find((model) => model.default) || models[0] || null;
   if (previous?.engine !== id || state.model?.model !== previous?.model) {
-    state.channel = state.model?.default_channel || 'cpu';
+    state.channel = usableChannel();
   }
   fillSelect(el.modelSelect, models.map((model) => model.model), state.model?.model);
 
@@ -195,8 +212,10 @@ function selectEngine(id) {
   el.voiceField.htmlFor = freeform ? 'voice-description' : 'voice-select';
   el.voiceTitle.textContent = style ? 'Style' : 'Voice';
   el.voiceDescription.placeholder = style ? 'e.g. calm narration (optional)' : 'Describe a voice (optional)';
-  fillSelect(el.voiceSelect, state.engine.voices, state.engine.default_voice);
-  fillSelect(el.languageSelect, state.engine.languages, state.engine.default_language,
+  fillSelect(el.voiceSelect, state.engine.voices,
+    pick(state.engine.voices, held.voice, state.engine.default_voice));
+  fillSelect(el.languageSelect, state.engine.languages,
+    pick(state.engine.languages, held.language, state.engine.default_language),
     (value) => LANGUAGE_NAMES[value] || value);
 
   el.engineName.textContent = state.engine.label;
@@ -435,7 +454,7 @@ el.voiceSelect.addEventListener('change', () => {
 el.languageSelect.addEventListener('change', refreshAlignmentAvailability);
 el.modelSelect.addEventListener('change', () => {
   state.model = state.models.find((model) => model.engine === state.engine.id && model.model === el.modelSelect.value) || state.model;
-  state.channel = state.model?.default_channel || 'cpu';
+  state.channel = usableChannel();
   refreshChannel();
 });
 el.channelSelect.addEventListener('change', () => {

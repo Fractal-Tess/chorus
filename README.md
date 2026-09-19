@@ -50,23 +50,35 @@ uv run serve-api --engines kokoro --download-missing --devices cpu
 GitHub hosts source and lightweight LFS pointers, not model binaries. `--download-missing` downloads pinned weights from upstream. The shipped Kokoro policy defaults to GPU, so request the CPU channel explicitly:
 
 ```sh
-curl --fail-with-body http://127.0.0.1:8000/v1/audio/speech \
+curl --fail-with-body http://127.0.0.1:8749/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -d '{"engine":"kokoro","model":"82m-v1.0","channel":"cpu","input":"A quiet test from the CPU.","response_format":"wav"}' \
   --output kokoro-cpu.wav
 ```
 
-Open **[localhost:8000](http://127.0.0.1:8000)** for the console or **[localhost:8000/docs](http://127.0.0.1:8000/docs)** for interactive API documentation. See the [API guide](docs/api.md#generate-audio) for voices, formats, and processing options. An explicit GPU request never silently falls back to CPU.
+Open **[localhost:8749](http://127.0.0.1:8749)** for the console or **[localhost:8749/docs](http://127.0.0.1:8749/docs)** for interactive API documentation. See the [API guide](docs/api.md#generate-audio) for voices, formats, and processing options. An explicit GPU request never silently falls back to CPU.
 
 ## Run with Docker
 
-Build `chorus:local`, create persistent model/cache volumes, and start the image with its default Kokoro CPU configuration:
+Compose builds the image, keeps persistent model/cache volumes, and starts the default Kokoro CPU configuration on `127.0.0.1:8749`:
+
+```sh
+docker compose up --build
+```
+
+Set `CHORUS_ENGINES=kokoro,piper` in a `.env` file to change the selection. For NVIDIA GPUs, add the CDI overlay and widen the device pool:
+
+```sh
+CHORUS_DEVICES=cpu,cuda:0,cuda:1 docker compose -f docker-compose.yml -f compose.cuda.yml up
+```
+
+The equivalent plain Docker run is:
 
 ```sh
 docker build -t chorus:local .
 docker volume create chorus-models
 docker volume create chorus-cache
-docker run --rm -p 127.0.0.1:8002:8000 \
+docker run --rm -p 127.0.0.1:8002:8749 \
   -v chorus-models:/models -v chorus-cache:/cache chorus:local
 ```
 

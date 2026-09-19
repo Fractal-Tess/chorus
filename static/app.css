@@ -121,6 +121,16 @@ kbd {
   .columns { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* On a roomy desktop the console fills one viewport: the composer keeps its
+   natural height and the comparison area takes what is left. */
+@media (min-width: 1081px) and (min-height: 760px) {
+  .shell { height: 100svh; min-height: 0; overflow: hidden; }
+  .columns { min-height: 0; }
+  .aside { max-height: 100%; overflow-y: auto; }
+  .compare { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+  .slots { min-height: 0; }
+}
+
 footer {
   margin-top: auto;
   padding-top: 16px;
@@ -305,6 +315,39 @@ footer .host { font-family: var(--mono); }
 .field__note { font-size: 10.5px; color: var(--ink-3); }
 .field__note.is-bad { color: var(--warn); }
 .field .mono { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+
+/* Chrome 135+ renders the option list as real DOM, so the popup can follow the
+   theme instead of dropping to the OS widget. Elsewhere the native list stays. */
+@supports (appearance: base-select) {
+  .field select,
+  .field select::picker(select) { appearance: base-select; }
+  .field select { border: 0; background: none; padding: 1px 0; gap: 8px; }
+  .field select::picker-icon { color: var(--ink-3); transition: rotate 140ms ease; }
+  .field select:open::picker-icon { rotate: 180deg; }
+  .field select::picker(select) {
+    border: 1px solid var(--line-2);
+    border-radius: var(--r);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    padding: 5px;
+    margin-top: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .field option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .field option:hover:not(:disabled) { background: var(--surface-2); }
+  .field option:checked { color: var(--accent); font-weight: 700; }
+  .field option:disabled { color: var(--ink-3); }
+  .field option::checkmark { content: ''; color: var(--accent); }
+}
 
 .composer__foot {
   display: flex;

@@ -46,7 +46,7 @@ needs permissions that let that user traverse directories and read model files:
 
 ```sh
 docker run --rm --name chorus-multi-root \
-  -p 127.0.0.1:8002:8000 \
+  -p 127.0.0.1:8002:8749 \
   -v /mnt/fast/chorus/models:/models-fast \
   -v /mnt/archive/chorus/models:/models-slow:ro \
   -v chorus-cache:/cache \
@@ -61,7 +61,7 @@ The equivalent environment configuration is:
 
 ```sh
 docker run --rm --name chorus-multi-root \
-  -p 127.0.0.1:8002:8000 \
+  -p 127.0.0.1:8002:8749 \
   -e TTS_MODELS_DIRS=/models-fast:/models-slow \
   -v /mnt/fast/chorus/models:/models-fast \
   -v /mnt/archive/chorus/models:/models-slow:ro \
@@ -78,6 +78,48 @@ docker volume create chorus-cache
 
 Do not bake weights into the image or Docker build context.
 
+## Compose
+
+`docker-compose.yml` builds the image, keeps `models` and `cache` named
+volumes, and publishes the API on `127.0.0.1:8749`:
+
+```sh
+docker compose up --build
+```
+
+Engines and devices stay CLI arguments; Compose interpolates them into the
+command, so a `.env` file beside the compose file is enough to change them:
+
+```sh
+CHORUS_ENGINES=kokoro,piper
+CHORUS_DEVICES=cpu
+CHORUS_PORT=8749
+```
+
+Both lists use the same comma-separated syntax as `--engines` and `--devices`,
+and the CLI still rejects unknown engine names on startup. Breeze and Fish need
+their separate runtimes and cannot be enabled in this image.
+
+GPUs need the device reserved as well as named in `CHORUS_DEVICES`, so
+`compose.cuda.yml` overlays a CDI device onto the service:
+
+```sh
+CHORUS_DEVICES=cpu,cuda:0,cuda:1 \
+  docker compose -f docker-compose.yml -f compose.cuda.yml up
+```
+
+Put `COMPOSE_FILE=docker-compose.yml:compose.cuda.yml` in `.env` to make that
+the default. `CHORUS_GPU` selects the device and defaults to
+`nvidia.com/gpu=all`; use `nvidia.com/gpu=1` for a single host GPU, which then
+appears inside as `cuda:0`. Hosts running the NVIDIA Docker runtime rather than
+CDI want a `deploy.resources.reservations.devices` entry instead.
+
+Check the resolved command before starting:
+
+```sh
+docker compose config
+```
+
 ## CPU
 
 This command publishes the API and console on host loopback port `8002` and
@@ -85,7 +127,7 @@ keeps the two named volumes attached:
 
 ```sh
 docker run --rm --name chorus-cpu \
-  -p 127.0.0.1:8002:8000 \
+  -p 127.0.0.1:8002:8749 \
   -v chorus-models:/models \
   -v chorus-cache:/cache \
   chorus:local --engines kokoro --devices cpu --download-missing
@@ -112,7 +154,7 @@ use `--gpus all`:
 ```sh
 docker run --rm --name chorus-cuda \
   --gpus all \
-  -p 127.0.0.1:8003:8000 \
+  -p 127.0.0.1:8003:8749 \
   -v chorus-models:/models \
   -v chorus-cache:/cache \
   chorus:local --engines kokoro --devices cpu,cuda:0,cuda:1 --download-missing
@@ -123,7 +165,7 @@ On NixOS with NVIDIA CDI configured, use the CDI device instead:
 ```sh
 docker run --rm --name chorus-cuda \
   --device nvidia.com/gpu=all \
-  -p 127.0.0.1:8003:8000 \
+  -p 127.0.0.1:8003:8749 \
   -v chorus-models:/models \
   -v chorus-cache:/cache \
   chorus:local --engines kokoro --devices cpu,cuda:0,cuda:1 --download-missing
@@ -144,7 +186,7 @@ use `--gpus '"device=1"'`; pair that with `--devices cpu,cuda:0` and not
 `cuda:1`. CDI can expose that same host ordinal with
 `--device nvidia.com/gpu=1`; it also appears inside as `cuda:0`.
 
-The image binds HTTP to `0.0.0.0:8000` inside the container. The examples
+The image binds HTTP to `0.0.0.0:8749` inside the container. The examples
 publish it only on localhost, and the API has no authentication. Keep it on
 loopback or put it behind a trusted private network before publishing it to
 other machines.

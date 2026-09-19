@@ -1,0 +1,9 @@
+# Overlay for NVIDIA GPUs, exposed through CDI:
+#   docker compose -f docker-compose.yml -f compose.cuda.yml up
+# or set COMPOSE_FILE=docker-compose.yml:compose.cuda.yml in .env.
+# Reserving the device is separate from CHORUS_DEVICES, which only declares the
+# pool Chorus may schedule on.
+services:
+  chorus:
+    devices:
+      - ${CHORUS_GPU:-nvidia.com/gpu=all}

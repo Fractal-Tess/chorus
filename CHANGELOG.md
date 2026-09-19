@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.6 - 2026-09-19
+
+- Add `docker-compose.yml`: it builds the image, keeps the `models` and `cache` volumes, and publishes port `8002`. `CHORUS_ENGINES`, `CHORUS_DEVICES`, and `CHORUS_PORT` are interpolated into the CLI arguments, so a `.env` file changes the selection without a code path of its own.
+- Add `compose.cuda.yml`, a CDI overlay that reserves `nvidia.com/gpu=all` for the service. Verified with Kokoro `82m-v1.0` on two RTX 3090s: CPU and GPU synthesis from one container, and concurrent GPU requests spread across both devices.
+- Move the default port from `8000` to `8749`, which is unassigned and outside the ephemeral range, so the console stops colliding with other local services.
+- Send `Cache-Control: no-cache` with the console assets. Browsers cached them heuristically and could pair a stale `app.js` with fresh markup after an upgrade, breaking the page until a manual hard reload.
+- Style the select popups through `appearance: base-select` where the browser supports it, so voice, language, model, and execution menus follow the theme instead of falling back to the OS widget. Other browsers keep the native list.
+- Fit the console into one viewport on desktop: the comparison panel takes the space the composer leaves and scrolls internally rather than pushing the page down.
+- Keep the chosen voice and language when the catalog refreshes. Every render re-entered engine selection and snapped both fields back to the engine defaults.
+- Start on a channel that can actually run. The shipped Kokoro policy defaults to GPU, so a CPU-only host opened with an unavailable channel selected and the generate button disabled.
+
 ## 0.1.5 - 2026-09-19
 
 - Render into two comparison slots instead of a single "latest render" panel. Auto alternates between them so the previous take survives, a linked playhead carries the position across when switching takes, and `A`/`B`/`Space` audition from the keyboard. Slots also swap, clear, and download individually, and the header warns when the two takes came from different scripts.

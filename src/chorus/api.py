@@ -103,13 +103,28 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+class RevalidatedStaticFiles(StaticFiles):
+    """Force revalidation of console assets.
+
+    Without an explicit Cache-Control, browsers cache heuristically and can pair
+    a stale app.js with fresh markup after an upgrade, which fails at load.
+    """
+
+    def file_response(self, *args: object, **kwargs: object) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 static_dir = ROOT / "static"
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+app.mount("/static", RevalidatedStaticFiles(directory=static_dir), name="static")
 
 
 @app.get("/", include_in_schema=False)
 def landing_page() -> FileResponse:
-    return FileResponse(static_dir / "index.html")
+    return FileResponse(
+        static_dir / "index.html", headers={"Cache-Control": "no-cache"}
+    )
 
 
 def _health_channels() -> list[dict[str, object]]:

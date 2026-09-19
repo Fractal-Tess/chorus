@@ -66,7 +66,7 @@ Pocket TTS dynamically quantizes its transformer attention and feed-forward laye
 
 ```bash
 curl --fail-with-body \
-  -X POST http://127.0.0.1:8000/v1/audio/speech \
+  -X POST http://127.0.0.1:8749/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -d '{
     "engine": "kokoro",

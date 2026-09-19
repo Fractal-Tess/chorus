@@ -14,7 +14,7 @@ serve-api --engines kokoro --download-missing --devices cpu,cuda:0
 
 The development shell adds the project virtualenv's `bin/` to `PATH`, where `uv sync` installs the `serve-api` console script.
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive API documentation is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api --engines kokoro`. `serve-api --version` reports the release version.
+Open [http://127.0.0.1:8749](http://127.0.0.1:8749). Interactive API documentation is available at [http://127.0.0.1:8749/docs](http://127.0.0.1:8749/docs). Set `TTS_HOST` or `TTS_PORT` to change the bind address; for example, `TTS_HOST=0.0.0.0 TTS_PORT=8787 serve-api --engines kokoro`. `serve-api --version` reports the release version.
 
 `--engines` is required when starting the API. Before listening, Chorus checks the selected engines' model files for missing files, empty files, and unmaterialized Git LFS pointers. It exits with the affected paths and repair commands if anything is incomplete. Files belonging to unselected engines are not required.
 
@@ -61,7 +61,7 @@ modules = [
 ];
 ```
 
-This targets x86_64 Linux with a working NVIDIA driver. The module does not change the host's driver configuration. Rebuild your system, then check `systemctl status chorus` and `journalctl -u chorus -f`. The API and console listen on `127.0.0.1:8000` by default.
+This targets x86_64 Linux with a working NVIDIA driver. The module does not change the host's driver configuration. Rebuild your system, then check `systemctl status chorus` and `journalctl -u chorus -f`. The API and console listen on `127.0.0.1:8749` by default.
 
 Nix installs the launcher and system libraries. First startup uses `uv sync --locked` to provision Python dependencies, then downloads missing selected-engine model files before listening. **Python dependencies are provisioned at runtime, not built into the Nix closure.** First startup needs network access and several GB of disk space. State lives in `/var/lib/chorus`, models default to `/var/lib/chorus/models`, and download caches default to `/var/cache/chorus`; these paths are configurable. `modelsDirectories` is a nonempty ordered list of normalized absolute paths and defaults to `[ "${cfg.stateDirectory}/models" ]`. Model weights never enter the service package.
 

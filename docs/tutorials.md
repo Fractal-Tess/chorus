@@ -42,7 +42,7 @@ The request names a logical channel. `cuda:0` belongs to the server's physical d
 CPU request:
 
 ```sh
-curl --fail-with-body http://127.0.0.1:8000/v1/audio/speech \
+curl --fail-with-body http://127.0.0.1:8749/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -d '{"engine":"kokoro","model":"82m-v1.0","channel":"cpu","input":"A quiet test from the CPU.","response_format":"wav"}' \
   --output kokoro-cpu.wav
@@ -51,7 +51,7 @@ curl --fail-with-body http://127.0.0.1:8000/v1/audio/speech \
 GPU request:
 
 ```sh
-curl --fail-with-body http://127.0.0.1:8000/v1/audio/speech \
+curl --fail-with-body http://127.0.0.1:8749/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -d '{"engine":"kokoro","model":"82m-v1.0","channel":"gpu","input":"A quiet test from the GPU.","response_format":"wav"}' \
   --output kokoro-gpu.wav

@@ -115,7 +115,7 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = 8000;
+      default = 8749;
       description = "TCP port on which Chorus listens.";
     };
 
