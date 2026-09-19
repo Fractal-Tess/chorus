@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10 - 2026-09-19
+
+- Use the abstract Chorus mark as the browser favicon, including a multi-size ICO at the conventional `/favicon.ico` path and an explicit PNG fallback in the page metadata.
+
 ## 0.1.9 - 2026-09-19
 
 - Replace the literal faceted “C” with an abstract transparent Chorus mark: three amber voice forms interlock around a shared void, matching the sculptural visual language of Znake, Faber, and Shadoword.

@@ -128,6 +128,15 @@ def landing_page() -> FileResponse:
     )
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    return FileResponse(
+        static_dir / "favicon.ico",
+        media_type="image/x-icon",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
 def _health_channels() -> list[dict[str, object]]:
     """Summarize logical channel capabilities without exposing physical IDs."""
     statuses = {
