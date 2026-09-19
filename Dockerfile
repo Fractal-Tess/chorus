@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 ARG UV_VERSION=0.12.5
-FROM --platform=linux/amd64 ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
-FROM --platform=linux/amd64 python:3.12-slim-bookworm AS builder
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+FROM python:3.12-slim-bookworm AS builder
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
@@ -25,7 +25,7 @@ COPY models ./models
 # Keep the editable project environment rooted at /app, matching chorus.models.ROOT.
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev
 
-FROM --platform=linux/amd64 python:3.12-slim-bookworm AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH=/app/.venv/bin:/usr/local/bin:$PATH \

@@ -2,10 +2,15 @@
 
 [Project overview](../README.md) · [Setup](setup.md) · [API and runtime](api.md)
 
-The repository includes a single Linux `amd64` image for Chorus's main Python
-runtime. It is built with Python 3.12, Debian slim, and uv 0.12.5. The image
-provisions dependencies at build time with `uv sync --locked`; it does not
-install the separate Breeze or Fish runtimes.
+The repository includes one image for Chorus's main Python runtime. It is built
+with Python 3.12, Debian slim, and uv 0.12.5. No stage pins an architecture, so
+the build follows the target platform: `docker build` produces an image for the
+builder's platform, and `docker buildx build --platform linux/arm64` is honoured
+instead of silently emulated. The dependency set still limits that to `amd64`,
+because `onnxruntime-gpu` and `torchaudio` publish no `aarch64` Linux wheels, so
+other targets fail during `uv sync`. The image provisions dependencies at build
+time with `uv sync --locked`; it does not install the separate Breeze or Fish
+runtimes.
 
 ## Build the image
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7 - 2026-09-19
+
+- Stop pinning the Docker stages to `linux/amd64`. Every stage now takes the target platform, so the image matches the builder instead of forcing an emulated `amd64` build on other hosts. `amd64` remains the only target the dependencies can install, since `onnxruntime-gpu` and `torchaudio` ship no `aarch64` Linux wheels.
+
 ## 0.1.6 - 2026-09-19
 
 - Add `docker-compose.yml`: it builds the image, keeps the `models` and `cache` volumes, and publishes port `8002`. `CHORUS_ENGINES`, `CHORUS_DEVICES`, and `CHORUS_PORT` are interpolated into the CLI arguments, so a `.env` file changes the selection without a code path of its own.
