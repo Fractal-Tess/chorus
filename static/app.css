@@ -98,16 +98,24 @@ kbd {
 .brand__mark {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r);
-  background: var(--invert);
-  color: var(--invert-ink);
+  width: 42px;
+  height: 42px;
+}
+.brand__mark img {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
 }
 .brand__name { display: block; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
 .brand__tag { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); }
 
 .masthead__right { display: flex; align-items: center; gap: 14px; }
+
+@media (max-width: 600px) {
+  .masthead { flex-wrap: wrap; }
+  .masthead__right { width: 100%; justify-content: space-between; }
+}
 
 .version-pill {
   border: 1px solid var(--line);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9 - 2026-09-19
+
+- Replace the literal faceted “C” with an abstract transparent Chorus mark: three amber voice forms interlock around a shared void, matching the sculptural visual language of Znake, Faber, and Shadoword.
+- Use an optimized copy of the new mark in the browser console’s top-left brand while retaining the full-resolution source asset for project artwork.
+
 ## 0.1.8 - 2026-09-19
 
 - Show the installed Chorus version and packaged changelog in the browser console, with a cached GitHub tag check that identifies available updates without making the page depend on GitHub being reachable.
