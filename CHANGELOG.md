@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.8 - 2026-09-19
+
+- Show the installed Chorus version and packaged changelog in the browser console, with a cached GitHub tag check that identifies available updates without making the page depend on GitHub being reachable.
+- Package `CHANGELOG.md` in Nix and Docker deployments and expose the same release information through `GET /v1/release`.
+- Start tagging releases consistently with `v<version>` tags on Gitadel and GitHub.
+
 ## 0.1.7 - 2026-09-19
 
 - Run optional LavaSR enhancement and Wav2Vec2 force alignment on the selected CUDA device instead of holding a GPU synthesis slot while both stages run on CPU. CPU-channel requests keep CPU post-processing.

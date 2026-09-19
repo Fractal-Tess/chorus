@@ -18,6 +18,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY channels.toml ./
+COPY CHANGELOG.md ./
 COPY src ./src
 COPY static ./static
 COPY models ./models
@@ -52,6 +53,7 @@ COPY --from=builder --chown=10001:10001 /app/.venv /app/.venv
 COPY --from=builder --chown=10001:10001 /app/src /app/src
 COPY --from=builder --chown=10001:10001 /app/static /app/static
 COPY --from=builder --chown=10001:10001 /app/channels.toml /app/channels.toml
+COPY --from=builder --chown=10001:10001 /app/CHANGELOG.md /app/CHANGELOG.md
 COPY --from=builder --chown=10001:10001 /app/models /app/models
 # Isolated Breeze/Fish runtimes are intentionally not included in this image.
 

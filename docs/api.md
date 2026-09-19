@@ -104,11 +104,14 @@ For example, send `"response_format": "mp3"` and save the response as `speech.mp
 | `GET` | `/health` | Runtime and loaded-engine status |
 | `GET` | `/v1/devices` | Detected physical CPU/CUDA devices and enabled status for diagnostics |
 | `GET` | `/v1/resources` | Worker RAM/VRAM usage, GPU queue occupancy, soft cache budgets, and idle state |
+| `GET` | `/v1/release` | Installed version, packaged changelog, and cached GitHub tag update status |
 | `GET` | `/v1/engines` | Engines, voices, languages, and defaults |
 | `GET` | `/v1/models` | Model versions, channel support/policy/availability, defaults, and loaded instances |
 | `POST` | `/v1/audio/speech` | Generate WAV, MP3, FLAC, or Ogg Opus audio |
 | `GET` | `/v1/audio/alignments/{id}` | Retrieve a generated word-alignment sidecar |
 | `GET` | `/docs` | OpenAPI console |
+
+`GET /v1/release` always reports the installed package version and the changelog shipped in the same build. It also checks public GitHub tags, caches the result for 15 minutes, and degrades to an `unavailable` update status when GitHub cannot be reached. The browser console presents the same information without making cross-origin requests from the browser.
 
 `GET /v1/models` reports each model's `default_channel` and a `channels` list with `id`, `supported`, `enabled`, and `available` fields. `GET /v1/devices` returns physical `devices` with `id`, `type`, and `enabled` fields. Physical detection respects `CUDA_VISIBLE_DEVICES` and is cached for the server process; `--devices` restricts which detected devices the scheduler may use. There is no server-wide `default_device`; defaults are per model.
 

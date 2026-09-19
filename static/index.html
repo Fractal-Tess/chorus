@@ -28,6 +28,7 @@
         </span>
       </a>
       <div class="masthead__right">
+        <a class="version-pill" id="release-pill" href="#release-panel" title="Open release information">v—</a>
         <p class="status"><span id="health-dot" class="dot"></span><span id="health-label">Connecting</span></p>
         <div class="seg" id="theme-switch" role="group" aria-label="Color theme">
           <button type="button" data-theme-choice="system" title="Match the system theme" aria-label="Match the system theme">
@@ -130,6 +131,16 @@
             <div><dt>VRAM</dt><dd id="diagnostic-vram">Loading…</dd></div>
             <div><dt>Requests</dt><dd id="diagnostic-requests">Loading…</dd></div>
           </dl>
+        </details>
+
+        <details class="card panel release" id="release-panel">
+          <summary>
+            <span class="eyebrow">Installed release</span>
+            <span class="badge" id="release-version">v—</span>
+          </summary>
+          <p class="release__status" id="release-status">Checking GitHub…</p>
+          <div class="release__log" id="release-changelog"></div>
+          <a class="release__source" id="release-source" href="https://github.com/Fractal-Tess/chorus" target="_blank" rel="noreferrer">View source on GitHub ↗</a>
         </details>
 
         <section class="card panel endpoint">

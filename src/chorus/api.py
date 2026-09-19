@@ -20,6 +20,7 @@ from chorus.devices import available_devices
 from chorus.engines import ENGINE_INFO
 from chorus.models import ROOT
 from chorus.registry import EngineRegistry
+from chorus.releases import release_info
 from chorus.types import AUDIO_MEDIA_TYPES, ResponseFormat, encode_response
 
 logging.basicConfig(level=logging.INFO)
@@ -162,6 +163,12 @@ def health() -> dict[str, object]:
         "cuda_available": any(d.startswith("cuda:") for d in registry.policy.allowed),
         "loaded_engines": registry.loaded_engines(),
     }
+
+
+@app.get("/v1/release")
+def release() -> dict[str, object]:
+    """Report the installed release, packaged changelog, and latest GitHub tag."""
+    return release_info()
 
 
 @app.get("/v1/devices", response_model=DevicesResponse)

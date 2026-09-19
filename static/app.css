@@ -109,6 +109,16 @@ kbd {
 
 .masthead__right { display: flex; align-items: center; gap: 14px; }
 
+.version-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--ink-2);
+  font: 700 10px/1.5 var(--mono);
+  text-decoration: none;
+}
+.version-pill:hover { border-color: var(--accent); color: var(--accent); }
+
 .status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); }
 .dot.is-up { background: var(--ok); }
@@ -462,6 +472,21 @@ details.panel > summary { cursor: pointer; list-style: none; }
 details.panel > summary::-webkit-details-marker { display: none; }
 details.panel > summary::after { content: " +"; }
 details.panel[open] > summary::after { content: " −"; }
+.release > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.release > summary::after { display: none; }
+.release__status { font-size: 11.5px !important; }
+.release__status--current { color: var(--ok) !important; }
+.release__status--update_available { color: var(--accent) !important; }
+.release__status a, .release__source { color: inherit; font-weight: 700; }
+.release__source { font-size: 11.5px; color: var(--accent); text-decoration: none; }
+.release__source:hover { text-decoration: underline; }
+.release__log { display: grid; gap: 14px; max-height: 320px; overflow-y: auto; padding-right: 5px; }
+.release__log section { display: grid; gap: 6px; }
+.release__log header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.release__log h3 { font: 700 12px/1.4 var(--mono); }
+.release__log time { font: 10px/1.4 var(--mono); color: var(--ink-3); }
+.release__log ul { margin: 0; padding-left: 17px; color: var(--ink-2); font-size: 11.5px; }
+.release__log li + li { margin-top: 6px; }
 .diagnostics { display: grid; gap: 10px; margin-top: 12px; }
 .diagnostics dt { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
 .diagnostics dd { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); overflow-wrap: anywhere; }

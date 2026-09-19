@@ -17,6 +17,8 @@ python -m unittest discover -s tests -v
 
 The browser console in `static/` is plain HTML, CSS, and ES modules with no build step: edit `index.html`, `app.css`, `app.js`, or `player.js` and reload. It renders into two comparison slots so two takes can be auditioned against each other.
 
+Release versions come from `pyproject.toml`; the console reads that installed version and the packaged `CHANGELOG.md` through `/v1/release`. Finish a release with a matching `v<version>` Git tag and push the commit and tag to both Gitadel and GitHub. The console compares its installed version with public GitHub tags, so do not reuse or move a published version tag.
+
 `chorus-tts` (`src/chorus/speak.py`) synthesizes a single WAV from the shell for any engine, through the same registry the API uses, so it honours channel policy, device selection, and lazy loading. Fetch an engine's manifest files before calling it. Generated audio and smoke reports belong in the ignored `outputs/` directory.
 
 ```bash

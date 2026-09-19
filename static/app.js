@@ -30,7 +30,8 @@ const el = Object.fromEntries([
   'health-label', 'diagnostic-devices', 'diagnostic-models', 'diagnostic-vram',
   'diagnostic-requests', 'slots', 'audition-switch', 'stop-button', 'swap-button',
   'link-playhead', 'compare-hint', 'alignment-panel', 'alignment-owner', 'alignment-words',
-  'target-switch', 'theme-switch', 'server-address',
+  'target-switch', 'theme-switch', 'server-address', 'release-pill', 'release-version',
+  'release-status', 'release-changelog', 'release-source',
 ].map((id) => [id.replace(/-(.)/g, (_, char) => char.toUpperCase()), $(`#${id}`)]));
 
 const state = { engines: [], models: [], engine: null, model: null, channel: null, target: 'auto', focus: null, generating: false };
@@ -413,6 +414,51 @@ async function checkHealth() {
   }
 }
 
+async function refreshRelease() {
+  try {
+    const release = await fetch('/v1/release').then(readJson);
+    const version = `v${release.version}`;
+    el.releasePill.textContent = version;
+    el.releaseVersion.textContent = version;
+    el.releaseSource.href = release.source_url;
+
+    const update = release.update || {};
+    el.releaseStatus.className = `release__status release__status--${update.status || 'unavailable'}`;
+    if (update.status === 'update_available') {
+      el.releaseStatus.replaceChildren(
+        document.createTextNode(`Update v${update.latest_version} is available · `),
+        Object.assign(document.createElement('a'), { href: update.url, textContent: 'view release ↗', target: '_blank', rel: 'noreferrer' }),
+      );
+    } else if (update.status === 'current') {
+      el.releaseStatus.textContent = `Current · latest GitHub tag is v${update.latest_version}`;
+    } else {
+      el.releaseStatus.textContent = 'Installed version shown · GitHub check unavailable';
+    }
+
+    const entries = (release.changelog || []).map((entry) => {
+      const section = document.createElement('section');
+      const heading = document.createElement('h3');
+      heading.textContent = `v${entry.version}`;
+      const date = document.createElement('time');
+      date.textContent = entry.date;
+      const head = document.createElement('header');
+      head.append(heading, date);
+      const list = document.createElement('ul');
+      list.append(...(entry.changes || []).map((change) => {
+        const item = document.createElement('li');
+        item.textContent = change;
+        return item;
+      }));
+      section.append(head, list);
+      return section;
+    });
+    el.releaseChangelog.replaceChildren(...entries);
+  } catch {
+    el.releaseStatus.className = 'release__status release__status--unavailable';
+    el.releaseStatus.textContent = 'Release information unavailable';
+  }
+}
+
 /* ---------- theme ---------- */
 
 function setTheme(mode) {
@@ -500,4 +546,5 @@ refreshCompare();
 el.speechText.dispatchEvent(new Event('input'));
 el.serverAddress.textContent = location.host;
 checkHealth();
+refreshRelease();
 refreshCatalog(false).catch((error) => showError(error.message));

@@ -83,6 +83,7 @@ let
           ]
         )
         || sourceFile "channels.toml"
+        || sourceFile "CHANGELOG.md"
         || sourceFile "pyproject.toml"
         || sourceFile "uv.lock"
       else if top == "src" || top == "static" then
