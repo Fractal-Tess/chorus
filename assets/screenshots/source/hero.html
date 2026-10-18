@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"></head><body>
+<div class="win dark" style="left:56px;top:48px;width:1120px;height:874px"><div class="bar"><i></i><i></i><i></i><span>127.0.0.1:8749</span></div><img src="shots/console.png"></div>
+<div class="win dark" style="right:56px;bottom:52px;width:720px;height:432px"><div class="bar"><i></i><i></i><i></i><span>~/announcements</span></div>
+<div class="term"><span class="p">$</span> curl -s localhost:8749/v1/audio/speech \
+    -H 'Content-Type: application/json' \
+    -d '{"engine":"piper","model":"default",
+         "input":"Gate change. Flight 214 to Vienna
+                  now boards at gate nine.",
+         "response_format":"mp3"}' \
+    -o gate-change.mp3 -D -
+<span class="ok">HTTP/1.1 200 OK</span>
+<span class="k">x-tts-engine:</span> piper
+<span class="k">x-tts-device:</span> cpu
+<span class="k">x-audio-duration:</span> 4.261
+<span class="k">x-inference-time-ms:</span> 4650.6
+<span class="k">content-type:</span> audio/mpeg
+<span class="p">$</span> <span class="d">ls -lh gate-change.mp3</span>
+-rw-r--r-- 1 tess users 68K gate-change.mp3</div></div>
+</body></html>

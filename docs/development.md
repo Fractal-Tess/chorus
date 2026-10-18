@@ -27,6 +27,21 @@ chorus-tts --engine kokoro --voice af_heart "A quiet test." -o outputs/kokoro.wa
 
 Engine code lives in `src/chorus/engines/`; versioned artifacts and manifests live in `models/<engine>/<version>/`. The registry caches isolated workers per engine, model, and device. Kokoro CUDA workers overlap up to two requests in one ONNX session without duplicating model weights; CPU and other engine workers serialize requests. Additional requests wait for a slot. Workers own optional processing from `processing.py` so eviction also releases those models. Programmatic `EngineRegistry` callers must call `close()` when finished. Add an adapter for a new engine or a manifest for another supported model version. Multi-component models can list multiple artifacts; adapters own their runtime details.
 
+## README images
+
+The README cover and gallery in `assets/screenshots/` are composed from the HTML layouts in `assets/screenshots/source/`, one `.html` per image plus the shared `style.css`. They load raw captures from `assets/screenshots/source/shots/`, which is not committed. To remake them, start the API with a few CPU engines, generate takes in the console, and save 2x browser screenshots there as `console.png` (dark, 1440 × 1080), `light.png` (light, 1440 × 1080), `diagnostics.png` (dark, diagnostics and release panels open, 1440 × 1500) and `api.png` (`/docs`, 1280 × 900). Then render each layout at 1600 × 1000 with a device scale of 2 and convert it to WebP:
+
+```sh
+cd assets/screenshots/source
+for name in hero light diagnostics api; do
+  google-chrome-stable --headless=new --hide-scrollbars --force-device-scale-factor=2 \
+    --window-size=1600,1000 --screenshot="/tmp/$name.png" "file://$PWD/$name.html"
+  cwebp -q 82 "/tmp/$name.png" -o "../$name.webp"
+done
+```
+
+The terminal window in `hero.html` is plain HTML; update it from a real `curl -D -` run when the response headers change.
+
 ## Publishing source without model binaries
 
 The maintainer checkout uses `origin` for Gitadel and `github` for the public
